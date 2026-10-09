@@ -1,0 +1,24 @@
+# 换行符策略：所有文本文件在仓库内与检出后统一为 LF。
+# 本仓库以初始提交建立该约定，因此不存在历史换行符改动造成的噪音。
+* text=auto eol=lf
+
+# Windows 批处理脚本必须保持 CRLF，否则可能在 cmd.exe 下执行异常。
+# 这是对上面全局 eol=lf 的必要例外，不是可选偏好。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制资源：禁止换行符转换，禁止按文本 diff。
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.icns binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+
+# 应用图标为 Tauri 模板生成的默认资源，在托管平台的差异视图中折叠。
+src-tauri/icons/** linguist-generated
