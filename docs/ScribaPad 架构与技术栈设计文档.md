@@ -7,6 +7,7 @@
 | V0.1 | 2026-10-09 | 初稿，技术栈确认                                                      |
 | V0.2 | 2026-10-09 | 与 SRS 对齐矛盾项；工具链更正为 Vite+；新增「1.6 实现现状」与规划标记 |
 | V0.3 | 2026-10-09 | 回写 §12 需求归属；FR-16 确认留在 V1.1；与实施计划对齐                |
+| V0.4 | 2026-10-10 | 按 UI 设计规范回写：§4.2.10 与 AD-11 收窄 Naive UI 适用范围至对话框与反馈层；§5.1 组件表改为 18 项；§4.1 与附录 A.4 补 `@vicons/fluent` 图标依赖并记录 vfonts 判断 |
 
 ---
 
@@ -251,6 +252,8 @@ ScribaPad 的 UI 组件库需要满足轻量、高性能、TypeScript 友好、�
 
 Element Plus 生态最成熟，但设计风格偏传统中后台，深度定制成本较高；TDesign Vue Next 对桌面端交互优化较好，可作为备选方案。综合评估后，选择 Naive UI 作为首选 UI 组件库。
 
+**适用范围**：AD-11 只决定选用哪个组件库，**不决定用多少**。Naive UI 在 ScribaPad 中的实际使用边界已于 V0.4 收窄至对话框与反馈层（含 `n-icon`），见 §4.2.10 与《ScribaPad UI 设计规范》§5.1。
+
 ---
 
 ## 4. 技术栈选型
@@ -269,7 +272,8 @@ Element Plus 生态最成熟，但设计风格偏传统中后台，深度定制�
 | SFC 编译与类型检查 | @vitejs/plugin-vue / vue-tsc | 6.0.9 / 3.3.12              | SFC 编译、模板类型检查     | 已落地 |
 | 包管理器           | pnpm                         | 12.3.4                      | 依赖管理                   | 已落地 |
 | 状态管理           | Pinia                        | 2.2+                        | 前端状态管理               | 规划   |
-| UI 组件库          | Naive UI                     | 2.x                         | 基础 UI 组件与主题系统     | 规划   |
+| UI 组件库          | Naive UI                     | 2.x                         | 对话框与反馈层（含 `n-icon`） | 规划   |
+| 界面图标           | @vicons/fluent               | 0.13.0                      | 界面图标（Naive UI 推荐的 xicons 项目） | 规划   |
 | 编辑渲染           | CodeMirror                   | 6.x                         | 文本渲染、光标、选择、IME  | 规划   |
 | 语法引擎           | Tree-sitter                  | 0.25+                       | 增量解析、CST              | 规划   |
 | Tree-sitter 绑定   | tree-house                   | 0.1+                        | 高亮器与 ropey 集成        | 规划   |
@@ -378,7 +382,13 @@ Vue 在架构中承担编辑器周边 UI 的编排职责，编辑区本身由 Co
 | 主题定制 | 基于配置对象的声明式主题，支持深度定制       |
 | 适用场景 | 轻量桌面工具、SaaS、仪表盘、追求设计感的项目 |
 
-Naive UI 在 ScribaPad 中用于构建编辑器周边 UI，包括标签栏、菜单、设置面板、状态栏、查找替换面板、跨文件搜索面板、插件管理界面等。编辑区本身由 CodeMirror 6 独立管理，Naive UI 不介入文本渲染。
+Naive UI 在 ScribaPad 中**仅用于对话框与反馈层**（V0.4 收窄，依据见《ScribaPad UI 设计规范》§5.1 与原则 P1）：设置／关于／快捷键／确认对话框，以及通知宿主。
+
+窗口骨架——菜单栏、工具栏、标签栏、状态栏、底部面板容器——**均为自定义组件**，只读设计令牌。收窄的理由：这些区域在候选组件库中都没有对应物（菜单栏是带下拉与助记符的横向栏；编辑器的标签栏要承载未保存标记与拖拽排序；状态栏完全定制），强行套用需覆盖组件库的尺寸体系；而 Naive UI 的价值集中在表单与反馈。
+
+唯一的组件级例外是 `n-icon`：它是 1em 见方、`fill: currentColor` 的 `<i>` 容器，不携带尺寸体系，用于统一承载全部图标（见 UI 设计规范 §6.5）。
+
+编辑区本身由 CodeMirror 6 独立管理，Naive UI 不介入文本渲染。查找替换与跨文件搜索**不再是并列的独立组件**，而是底部统一面板（DockPanel）的两个页签（见 UI 设计规范 §3.2）。
 
 #### 4.2.11 构建与工具链：Vite+（已落地）
 
@@ -403,18 +413,30 @@ Naive UI 在 ScribaPad 中用于构建编辑器周边 UI，包括标签栏、菜
 
 ### 5.1 前端组件
 
-| 组件                  | 职责                                               |
-| --------------------- | -------------------------------------------------- |
-| Editor                | CodeMirror 6 封装，管理编辑视图生命周期            |
-| TabBar                | 多标签显示、切换、关闭                             |
-| StatusBar             | 行列号、编码、换行符、语言模式显示                 |
-| FindReplace           | 当前文件查找替换                                   |
-| CrossFileSearch       | 跨文件搜索面板                                     |
-| SettingsPanel         | 主题、字体、快捷键设置                             |
-| PluginManager         | 插件安装、启用、禁用、卸载                         |
-| SyntaxHighlightPlugin | 自定义 ViewPlugin，接收并应用 Rust 高亮结果        |
-| FoldsExtension        | 折叠扩展，接收 Rust 折叠区域                       |
-| UI 基础组件           | 基于 Naive UI 的按钮、输入框、下拉、对话框、通知等 |
+| 组件                  | 职责                                                  | 里程碑 |
+| --------------------- | ----------------------------------------------------- | ------ |
+| AppShell              | 六区域网格编排、快捷键分发、令牌注入                  | M1     |
+| MenuBar               | 顶层菜单 + 下拉 + 快捷键提示 + 键盘导航               | M1     |
+| ToolBar               | 按钮组 + 尾部溢出菜单                                 | M1     |
+| TabBar                | 标签显示／切换／关闭／未保存标记；拖拽排序（FR-11）   | M1→M3  |
+| EditorHost            | CodeMirror 6 封装，管理编辑视图生命周期               | M1     |
+| DockPanel             | 底部统一容器：页签条 + 内容区 + 拖拽调高 + 折叠       | M1/M4  |
+| StatusBar             | 行列号、编码、换行符、语言模式；左侧只读、右侧可点击  | M1     |
+| EditorThemeBridge     | 令牌 → CodeMirror 主题与高亮样式（不产生 DOM）        | M1     |
+| NotificationHost      | 提示与通知宿主                                        | M2     |
+| ConfirmDialog         | 关闭未保存文件的确认                                  | M3     |
+| FindReplacePage       | DockPanel 页签内容之一                                | M4     |
+| SettingsDialog        | 主题、字体、快捷键、自动保存、配置导入导出            | M5     |
+| AboutDialog           | 版本号、许可、更新说明入口（OR-03）                   | M5     |
+| ShortcutsDialog       | 快捷键说明（OR-01）                                   | M5     |
+| SyntaxHighlightPlugin | 自定义 ViewPlugin，接收并应用 Rust 高亮结果           | M6     |
+| CrossFileSearchPage   | DockPanel 页签内容之二                                | M7     |
+| FoldsExtension        | 折叠扩展，接收 Rust 折叠区域                          | M7     |
+| PluginManager         | 插件安装、启用、禁用、卸载                            | M9     |
+
+> 表内 M1～M5 的 14 项为 **V1.0 范围**，M6 起按版本续列。完整视觉与交互定义见《ScribaPad UI 设计规范》第 5 章。
+>
+> `SettingsDialog`／`AboutDialog`／`ShortcutsDialog`／`ConfirmDialog`／`NotificationHost` 是 **Naive UI 唯一出现的地方**；其余骨架组件与两个页签组件均自定义，只读设计令牌（§4.2.10）。图标统一经 `n-icon` 承载，不产生独立组件（UI 设计规范 §6.5）。
 
 ### 5.2 后端模块
 
@@ -841,6 +863,7 @@ env_logger = "0.11"
     "pinia": "^2.2",
     "@vueuse/core": "^11",
     "naive-ui": "^2",
+    "@vicons/fluent": "^0.13.0",
     "codemirror": "^6",
     "@codemirror/state": "^6",
     "@codemirror/view": "^6",
@@ -851,6 +874,10 @@ env_logger = "0.11"
   }
 }
 ```
+
+> **图标库选型**：`@vicons/fluent` 属 xicons 项目（Naive UI 官方 README 推荐的图标库），与本项目既有的 Naive UI 选型同源。选它而非 xicons 下其它图标集，依据是实测——紧凑密度把图标压到 15px，Fluent 的拟用图标全为填充型，缩放不产生亚像素描边；而 Naive UI 自身示例默认的 `@vicons/ionicons5` 在该尺寸下有效描边仅 0.94px。详见《ScribaPad UI 设计规范》§6.5。
+>
+> **字体**：不引入内嵌字体包。`vfonts`（Naive UI 推荐的字体包）经实测不含中日韩字形（包内 9 个 TTF 字形数仅 851～1294），无法替代系统 CJK 字体，引入它只是在 Microsoft YaHei 之外再加一套拉丁字体。详见 UI 设计规范 §4.4.1。
 
 ---
 
