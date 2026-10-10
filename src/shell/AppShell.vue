@@ -47,8 +47,8 @@ function onChange() {
 <template>
   <div class="shell">
     <div class="region" data-region="menu">
-      <!-- 本任务不接命令：run 事件留给 Task 18 的命令分发 -->
-      <MenuBar />
+      <!-- 本任务不接命令：run 事件留给 Task 18 的命令分发；dismiss 只负责 Esc 后把焦点还给编辑区（§7.2） -->
+      <MenuBar @dismiss="editorRef?.focus()" />
     </div>
     <div class="region" data-region="toolbar" />
     <div class="region" data-region="tabs">

@@ -73,7 +73,8 @@ watch([() => props.docId, () => props.doc], ([, next]) => {
 });
 
 // R36：切标签前由 AppShell 拉取当前编辑区内容写回活动标签（不用每击键 emit 全文）
-defineExpose({ getDoc: () => view?.state.doc.toString() ?? "" });
+// R38：focus 供菜单栏 Esc 后把焦点还给编辑区（§7.2）
+defineExpose({ getDoc: () => view?.state.doc.toString() ?? "", focus: () => view?.focus() });
 
 onBeforeUnmount(() => {
   view?.destroy();
