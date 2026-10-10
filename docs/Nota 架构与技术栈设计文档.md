@@ -1,4 +1,4 @@
-# ScribaPad 架构与技术栈设计文档
+# Nota 架构与技术栈设计文档
 
 ## 修订历史
 
@@ -34,13 +34,13 @@
 
 ### 1.1 目的
 
-本文档定义 ScribaPad 的系统架构、技术栈选型、组件职责、接口规范与关键设计决策，作为开发、测试、评审和后续演进的技术依据。
+本文档定义 Nota 的系统架构、技术栈选型、组件职责、接口规范与关键设计决策，作为开发、测试、评审和后续演进的技术依据。
 
 本文档面向技术负责人、架构师、开发人员、测试人员和项目管理人员。
 
 ### 1.2 范围
 
-本文档覆盖 ScribaPad 桌面端应用的整体架构设计，包括：
+本文档覆盖 Nota 桌面端应用的整体架构设计，包括：
 
 - 分层架构与模块划分
 - 技术栈选型及依据
@@ -58,7 +58,7 @@
 
 ### 1.3 设计目标
 
-ScribaPad 架构设计遵循以下目标：
+Nota 架构设计遵循以下目标：
 
 | 编号 | 目标         | 说明                                              |
 | ---- | ------------ | ------------------------------------------------- |
@@ -87,7 +87,7 @@ ScribaPad 架构设计遵循以下目标：
 
 ### 1.5 参考文档
 
-见「附录 B 参考文档」。配套需求文档为《ScribaPad 软件需求规格说明书》（下称 SRS），两者共同构成 ScribaPad 的设计基线。
+见「附录 B 参考文档」。配套需求文档为《Nota 软件需求规格说明书》（下称 SRS），两者共同构成 Nota 的设计基线。
 
 ### 1.6 实现现状
 
@@ -106,7 +106,7 @@ ScribaPad 架构设计遵循以下目标：
 | Tauri 插件   | 仅 `tauri-plugin-opener`（Rust）与 `@tauri-apps/plugin-opener`（前端）        |
 | Rust 侧命令  | 仅脚手架自带的 `greet` 演示命令                                               |
 | 前端页面     | 仅脚手架默认页（`src/App.vue` 调用 `invoke("greet")`）                        |
-| 窗口与标识   | 800×600；`identifier = com.scribapad`；dev 端口 1420；产物目录 `../dist`      |
+| 窗口与标识   | 800×600；`identifier = com.nota`；dev 端口 1420；产物目录 `../dist`      |
 | 类型检查     | `vue-tsc -b`；tsconfig 为 solution 结构（app / node 两个子项目）              |
 | 版本控制     | **尚未初始化 git 仓库**                                                       |
 
@@ -120,7 +120,7 @@ ScribaPad 架构设计遵循以下目标：
 
 ### 2.1 架构风格
 
-ScribaPad 采用**分层架构（Layered Architecture）** 与 **前后端分离** 相结合的设计风格：
+Nota 采用**分层架构（Layered Architecture）** 与 **前后端分离** 相结合的设计风格：
 
 - **前端层（WebView）**：负责用户交互、文本渲染、输入处理。
 - **通信层（IPC）**：负责前后端数据交换，区分请求-响应、事件与流式通道。
@@ -208,7 +208,7 @@ ScribaPad 采用**分层架构（Layered Architecture）** 与 **前后端分离
 
 #### AD-01 桌面框架选择 Tauri 2
 
-Tauri 2 使用系统 WebView 渲染界面，不打包 Chromium，安装包体积仅为 Electron 的 1/10 至 1/4，空闲内存占用约为 Electron 的 1/5。这与 ScribaPad 的轻量定位直接契合。
+Tauri 2 使用系统 WebView 渲染界面，不打包 Chromium，安装包体积仅为 Electron 的 1/10 至 1/4，空闲内存占用约为 Electron 的 1/5。这与 Nota 的轻量定位直接契合。
 
 #### AD-02 前端框架选择 Vue 3
 
@@ -216,11 +216,11 @@ Tauri 2 使用系统 WebView 渲染界面，不打包 Chromium，安装包体积
 
 #### AD-03 编辑渲染选择 CodeMirror 6
 
-CodeMirror 6 的架构允许完全绕过其内置 Lezer 解析器，通过 `StateField` / `ViewPlugin` 与 `Decoration` 系统动态应用外部高亮结果。这是 ScribaPad 将语法分析下沉到 Rust 侧的前提。
+CodeMirror 6 的架构允许完全绕过其内置 Lezer 解析器，通过 `StateField` / `ViewPlugin` 与 `Decoration` 系统动态应用外部高亮结果。这是 Nota 将语法分析下沉到 Rust 侧的前提。
 
 #### AD-04 语法引擎选择 Tree-sitter
 
-Tree-sitter 提供增量解析、错误容忍和统一的语法查询机制（`.scm` 文件）。相比 Scintilla 的词法规则模式，Tree-sitter 能提供语法结构感知的高亮、折叠与导航能力，是 ScribaPad 差异化的技术基础。
+Tree-sitter 提供增量解析、错误容忍和统一的语法查询机制（`.scm` 文件）。相比 Scintilla 的词法规则模式，Tree-sitter 能提供语法结构感知的高亮、折叠与导航能力，是 Nota 差异化的技术基础。
 
 #### AD-05 Tree-sitter 绑定选择 tree-house
 
@@ -248,11 +248,11 @@ CodeMirror 6 的文档模型基于字符位置，而 Tree-sitter 基于字节偏
 
 #### AD-11 UI 组件库选择 Naive UI
 
-ScribaPad 的 UI 组件库需要满足轻量、高性能、TypeScript 友好、主题定制能力强等要求。Naive UI 全量使用 TypeScript 编写，提供基于配置对象的声明式主题系统，支持 Tree Shaking，且内置虚拟滚动等性能优化。这些特性与 ScribaPad 的轻量定位和深度定制需求高度契合。
+Nota 的 UI 组件库需要满足轻量、高性能、TypeScript 友好、主题定制能力强等要求。Naive UI 全量使用 TypeScript 编写，提供基于配置对象的声明式主题系统，支持 Tree Shaking，且内置虚拟滚动等性能优化。这些特性与 Nota 的轻量定位和深度定制需求高度契合。
 
 Element Plus 生态最成熟，但设计风格偏传统中后台，深度定制成本较高；TDesign Vue Next 对桌面端交互优化较好，可作为备选方案。综合评估后，选择 Naive UI 作为首选 UI 组件库。
 
-**适用范围**：AD-11 只决定选用哪个组件库，**不决定用多少**。Naive UI 在 ScribaPad 中的实际使用边界已于 V0.4 收窄至对话框与反馈层（含 `n-icon`），见 §4.2.10 与《ScribaPad UI 设计规范》§5.1。
+**适用范围**：AD-11 只决定选用哪个组件库，**不决定用多少**。Naive UI 在 Nota 中的实际使用边界已于 V0.4 收窄至对话框与反馈层（含 `n-icon`），见 §4.2.10 与《Nota UI 设计规范》§5.1。
 
 ---
 
@@ -382,7 +382,7 @@ Vue 在架构中承担编辑器周边 UI 的编排职责，编辑区本身由 Co
 | 主题定制 | 基于配置对象的声明式主题，支持深度定制       |
 | 适用场景 | 轻量桌面工具、SaaS、仪表盘、追求设计感的项目 |
 
-Naive UI 在 ScribaPad 中**仅用于对话框与反馈层**（V0.4 收窄，依据见《ScribaPad UI 设计规范》§5.1 与原则 P1）：设置／关于／快捷键／确认对话框，以及通知宿主。
+Naive UI 在 Nota 中**仅用于对话框与反馈层**（V0.4 收窄，依据见《Nota UI 设计规范》§5.1 与原则 P1）：设置／关于／快捷键／确认对话框，以及通知宿主。
 
 窗口骨架——菜单栏、工具栏、标签栏、状态栏、底部面板容器——**均为自定义组件**，只读设计令牌。收窄的理由：这些区域在候选组件库中都没有对应物（菜单栏是带下拉与助记符的横向栏；编辑器的标签栏要承载未保存标记与拖拽排序；状态栏完全定制），强行套用需覆盖组件库的尺寸体系；而 Naive UI 的价值集中在表单与反馈。
 
@@ -434,7 +434,7 @@ Naive UI 在 ScribaPad 中**仅用于对话框与反馈层**（V0.4 收窄，依
 | FoldsExtension        | 折叠扩展，接收 Rust 折叠区域                          | M7     |
 | PluginManager         | 插件安装、启用、禁用、卸载                            | M9     |
 
-> 表内 M1～M5 的 14 项为 **V1.0 范围**，M6 起按版本续列。完整视觉与交互定义见《ScribaPad UI 设计规范》第 5 章。
+> 表内 M1～M5 的 14 项为 **V1.0 范围**，M6 起按版本续列。完整视觉与交互定义见《Nota UI 设计规范》第 5 章。
 >
 > `SettingsDialog`／`AboutDialog`／`ShortcutsDialog`／`ConfirmDialog`／`NotificationHost` 是 **Naive UI 唯一出现的地方**；其余骨架组件与两个页签组件均自定义，只读设计令牌（§4.2.10）。图标统一经 `n-icon` 承载，不产生独立组件（UI 设计规范 §6.5）。
 
@@ -749,7 +749,7 @@ Naive UI 在 ScribaPad 中**仅用于对话框与反馈层**（V0.4 收窄，依
 
 > **本节是版本计划的唯一权威来源。** SRS 的 2.6 节与附录 B 不再重复定义版本划分，只引用本节。
 >
-> 本节同时是**需求归属**（哪个需求落在哪个版本）的唯一来源。《ScribaPad 应用实施计划》附录 A 按里程碑重新分组，但不改变需求所属的版本；两者已于 V0.3 逐条对齐。
+> 本节同时是**需求归属**（哪个需求落在哪个版本）的唯一来源。《Nota 应用实施计划》附录 A 按里程碑重新分组，但不改变需求所属的版本；两者已于 V0.3 逐条对齐。
 
 | 版本                | 技术重点                                                                                       | 覆盖需求（SRS §3.2）                                                 | 语法支持                                  |
 | ------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------- |
@@ -774,7 +774,7 @@ Naive UI 在 ScribaPad 中**仅用于对话框与反馈层**（V0.4 收窄，依
 
 ```text
 [package]
-name = "scribapad"
+name = "nota"
 version = "0.1.0"
 edition = "2021"
 
@@ -875,7 +875,7 @@ env_logger = "0.11"
 }
 ```
 
-> **图标库选型**：`@vicons/fluent` 属 xicons 项目（Naive UI 官方 README 推荐的图标库），与本项目既有的 Naive UI 选型同源。选它而非 xicons 下其它图标集，依据是实测——紧凑密度把图标压到 15px，Fluent 的拟用图标全为填充型，缩放不产生亚像素描边；而 Naive UI 自身示例默认的 `@vicons/ionicons5` 在该尺寸下有效描边仅 0.94px。详见《ScribaPad UI 设计规范》§6.5。
+> **图标库选型**：`@vicons/fluent` 属 xicons 项目（Naive UI 官方 README 推荐的图标库），与本项目既有的 Naive UI 选型同源。选它而非 xicons 下其它图标集，依据是实测——紧凑密度把图标压到 15px，Fluent 的拟用图标全为填充型，缩放不产生亚像素描边；而 Naive UI 自身示例默认的 `@vicons/ionicons5` 在该尺寸下有效描边仅 0.94px。详见《Nota UI 设计规范》§6.5。
 >
 > **字体**：不引入内嵌字体包。`vfonts`（Naive UI 推荐的字体包）经实测不含中日韩字形（包内 9 个 TTF 字形数仅 851～1294），无法替代系统 CJK 字体，引入它只是在 Microsoft YaHei 之外再加一套拉丁字体。详见 UI 设计规范 §4.4.1。
 
@@ -885,7 +885,7 @@ env_logger = "0.11"
 
 > 术语表见 §1.4「术语与缩写」，此处不再重复。
 
-1. 《ScribaPad 软件需求规格说明书》（SRS）
+1. 《Nota 软件需求规格说明书》（SRS）
 2. IEEE Std 830-1998, IEEE Recommended Practice for Software Requirements Specifications
 3. [Tauri 2 Documentation](https://tauri.app)
 4. [Vite+ Documentation](https://viteplus.dev)

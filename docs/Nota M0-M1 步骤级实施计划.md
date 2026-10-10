@@ -1,4 +1,4 @@
-# ScribaPad M0–M1 步骤级实施计划
+# Nota M0–M1 步骤级实施计划
 
 > **给自动化执行者：** 本计划必须用 subagent-driven-development（推荐）或 executing-plans 逐任务执行。步骤用复选框（`- [ ]`）标记进度。
 
@@ -8,7 +8,7 @@
 
 **技术栈**：Tauri 2.12 · Vue 3.5 · TypeScript 6.0 · Vite+ 1.1.0（`vp`）· Vitest 5（`vp test`）· CodeMirror 6 · Pinia · `@vicons/fluent` · Rust edition 2021
 
-**Spec**：`docs/ScribaPad UI 设计规范.md`（V1.3，界面取值与交互的唯一来源）与 `docs/ScribaPad 应用实施计划.md`（V0.4，里程碑 M1 的覆盖需求与出口标准）。本计划是这两份文档在 M1 上的细化，**执行时必须同时读这两份**。
+**Spec**：`docs/Nota UI 设计规范.md`（V1.3，界面取值与交互的唯一来源）与 `docs/Nota 应用实施计划.md`（V0.4，里程碑 M1 的覆盖需求与出口标准）。本计划是这两份文档在 M1 上的细化，**执行时必须同时读这两份**。
 
 ## 全局约束
 
@@ -24,7 +24,7 @@
 - **字体使用系统字体栈，不引入任何内嵌字体包**（`vfonts` 已评估并否决，理由见规范 §4.4.1）。
 - **颜色令牌不得随意改动**。两套主题各 8 项 WCAG 对比度已实测达标，改动任何颜色后必须重跑 Task 2 的对比度测试。
 - **令牌取值**（规范 §4.2～§4.4，逐字）：菜单栏 24px · 工具栏 28px · 标签栏 26px · 状态栏 22px · 面板内容区默认 80px · 面板内控件 18px · 圆角 3px · 区域内边距 8px · 图标 15px · UI 字号 12px · 状态栏字号 11px · 编辑器字号 13px · 编辑器行高 1.45 · 制表符 4。
-- **窗口**：默认 1200×800、最小 640×400、标题 `文件名 — ScribaPad`。
+- **窗口**：默认 1200×800、最小 640×400、标题 `文件名 — Nota`。
 - **提交粒度**：每个任务结束提交一次，提交信息用中文、遵循现有的 `type(scope): 摘要` 风格。
 
 ---
@@ -1846,7 +1846,7 @@ export const MENU_MODEL: TopLevelMenu[] = [
     items: [
       { label: "快捷键说明", accelerator: "F1", requirement: "OR-01", version: "V1.0", command: "help.shortcuts" },
       { label: "", separator: true, version: "V1.0" },
-      { label: "关于 ScribaPad", requirement: "OR-03", version: "V1.0", command: "help.about" },
+      { label: "关于 Nota", requirement: "OR-03", version: "V1.0", command: "help.about" },
     ],
   },
 ];
@@ -2336,7 +2336,7 @@ git commit -m "feat(shell): DockPanel 壳（页签条 + 折叠 + 内容槽）"
 
 ```json
 {
-  "title": "ScribaPad",
+  "title": "Nota",
   "width": 1200,
   "height": 800,
   "minWidth": 640,
@@ -2421,7 +2421,7 @@ console.info(`[startup] frontend ready at ${performance.now().toFixed(1)}ms`);
 # AC-01 / PR-08 取证脚本。用法：pwsh scripts/measure-startup.ps1 -Runs 5
 param([int]$Runs = 5)
 
-$exe = Resolve-Path "src-tauri/target/release/scribapad.exe" -ErrorAction Stop
+$exe = Resolve-Path "src-tauri/target/release/nota.exe" -ErrorAction Stop
 Write-Host "被测程序：$exe"
 Write-Host "运行 $Runs 次，每次启动后采样空闲内存并退出。`n"
 
@@ -2494,7 +2494,7 @@ pwsh scripts/measure-startup.ps1 -Runs 5
 - [ ] **Step 6: 提交**
 
 ```bash
-git add -A scripts/ src/main.ts "docs/ScribaPad M0-M1 步骤级实施计划.md"
+git add -A scripts/ src/main.ts "docs/Nota M0-M1 步骤级实施计划.md"
 git commit -m "test(m1): AC-01 与 PR-08 取证脚本与实测记录"
 ```
 
@@ -2803,7 +2803,7 @@ Task 16 的取证结果。测量机器：Windows 10 100% DPI 1920×1080；releas
 
 | 项 | 要求 | 实测 | 结论 |
 | -- | ---- | ---- | ---- |
-| 窗口标题（§8.2） | `文件名 — ScribaPad`（M1 无文件名） | `ScribaPad` | 通过（动态标题属 M2） |
+| 窗口标题（§8.2） | `文件名 — Nota`（M1 无文件名） | `Nota` | 通过（动态标题属 M2） |
 | 窗口尺寸（§8.2） | 1200 × 800，最小 640 × 400 | 客户区 **1200 × 800**（外框 1216 × 839） | 通过 |
 | 区域高度（§3.1） | 24 / 28 / 26 / 弹性 / 26 / 22 | 24 / 28 / 26 / 582 / 26 / 22（展开面板时 dock 106、编辑区 502） | 通过 |
 | 面板内容区（§3.2） | 默认 80 | 展开时正好 **80px**；折叠态仅保留 25px 页签条 | 通过 |
