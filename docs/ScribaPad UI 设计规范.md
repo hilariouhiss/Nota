@@ -6,6 +6,7 @@
 | ---- | ---------- | ------------------------------------------------------------------ |
 | V1.0 | 2026-10-10 | 初稿。V1.0 全量界面设计 + 扩展位预留；含对比度实测与待回写清单     |
 | V1.1 | 2026-10-10 | 新增 §6.5 图标（选定 `@vicons/fluent`，含 20 项图标名清单）；P1 补 `n-icon` 例外；新增 1 项待验证、1 项待回写 |
+| V1.2 | 2026-10-10 | 新增 §4.4.1：vfonts 判断为不引入（实测其不含中日韩字形）；§4.1 补 `tokensToNaiveOverrides` 的具体覆盖项 |
 
 ---
 
@@ -166,6 +167,17 @@ ThemeTokens 类型 + 内置浅/深两套值（tokens.ts）
 - **主题文件（架构文档 §7.1）与内置主题走同一条路径**：从文件解析出的也是 `ThemeTokens`，不另设机制。
 - 切换主题时**只替换令牌对象，不重挂组件**；CodeMirror 主题通过 `Compartment` 热替换，避免重建编辑器（会丢失撤销历史与滚动位置）。
 
+`tokensToNaiveOverrides` 必须覆盖的具体项如下。Naive UI 的默认值比本规范的紧凑密度宽松得多（已核实其 `lib/_styles/common/_common.js`），不覆盖就会出现"骨架紧凑、对话框臃肿"的割裂：
+
+| Naive UI 默认值 | 本规范取值 | 是否覆盖 |
+| --------------- | ---------- | -------- |
+| `fontFamily: "v-sans, system-ui, …, \"Segoe UI\", sans-serif, …"` | `--sp-font-ui`（§4.4） | **是** |
+| `fontFamilyMono: "v-mono, SFMono-Regular, Menlo, Consolas, Courier, monospace"` | `--sp-font-mono`（§4.4） | **是** |
+| `fontSize: 14px`；`fontSizeMini/Tiny/Small/Medium: 12/12/14/14px` | `--sp-font-size-ui` 12px、`--sp-font-size-status` 11px | **是** |
+| `heightMini/Tiny/Small/Medium: 16/22/28/34px` | `--sp-control-h` 18px | **是** |
+| `borderRadius: 3px`、`borderRadiusSmall: 2px` | `--sp-radius` 3px | **否——本来就一致** |
+| `lineHeight: 1.6` | 无需覆盖 | **否**——该值管的是 Naive UI 组件自身的行高（设置对话框里 1.6 反而合适），与编辑器的 `--sp-line-height-editor` 是两回事，不要混用 |
+
 ## 4.2 颜色令牌（语义命名）
 
 命名一律用**语义**而非外观（`--sp-text-dim` 而非 `--sp-gray-500`）：同一个令牌名在浅色下是深灰、在深色下是浅灰，两套主题因此共用同一套令牌名。
@@ -228,6 +240,32 @@ ThemeTokens 类型 + 内置浅/深两套值（tokens.ts）
 UI-03 要求的四项（字体、字号、行距、制表符宽度）**就是这组令牌本身**，因此 FR-38 不需要另写一套机制：改设置＝合并一个覆盖层。
 
 `--sp-font-mono` 中的中日韩回退字体存在未验证风险，见 §9.1 第 1 项。
+
+### 4.4.1 关于 vfonts：判断为不引入
+
+Naive UI 官方 README 的 `### Fonts` 段推荐 `vfonts`（作者同为 `07akioni`，MIT）。**本规范判断为不引入**，依据是实测结果而非偏好。
+
+**vfonts 不含中日韩字形。** 读取包内 9 个 TTF 的 `maxp` 表，字形数为 **851～1294**——IBMPlexMono 851、IBMPlexSans 930、OpenSans 938、RobotoSlab 1155、Roboto 1294。含中日韩的字体至少两万字形起。其 README 亦只提供 `v-sans` 与 `v-mono` 两个族别名，等宽仅 FiraCode 一个。
+
+**因此 vfonts 与「Microsoft YaHei」不是二选一的关系。** 中文界面（UI-08、DC-04、FR-53）无论如何都必须依赖系统 CJK 字体；引入 vfonts 只是在 YaHei 之外再加一套拉丁字体，依赖只增不减。
+
+其余理由：
+
+| # | 理由 |
+| - | ---- |
+| 1 | Windows 上 **Segoe UI 是原生 UI 字体**：0 字节、0 解析开销、与系统控件观感一致 |
+| 2 | G-01（冷启动 ≤ 1.5 秒）与 AC-01 的运行预算不为可选拉丁字体付出体积；DC-10 离线优先同理 |
+| 3 | **不引入不会坏**：Naive UI 的默认栈是 `v-sans, system-ui, …, "Segoe UI", sans-serif, …`，`v-sans` / `v-mono` 之后有完整的系统回退（已核实源码），且本规范本来就要用令牌覆盖其 `fontFamily`（§4.1） |
+| 4 | **连带效应**：编辑器等宽若由 Consolas 换成 FiraCode，§9.1 第 1 项「中日韩字符是否正好占 2 个拉丁字符宽」的答案会随之改变——两者字符前进宽度不同。这会把一个待验证项变成两个，并在 M1 最需要确定性处引入不确定性 |
+
+**唯一的反向理由**：跨机器一致性。Segoe UI 在 Windows 10 与 11 上版本不同（后者为 Segoe UI Variable），内嵌字体可得到一致渲染。本规范判断该收益不足以抵上述四条；若日后确认需要一致渲染，再改为引入 vfonts，并把 §9.1 第 1 项按 FiraCode 重测。
+
+**字体分工（结论）**：
+
+| 字符范围 | 来源 |
+| -------- | ---- |
+| 拉丁、数字、符号 | 系统 UI 字体 Segoe UI；等宽用 Consolas（系统自带） |
+| 中日韩 | 系统 CJK 字体 Microsoft YaHei（系统自带，vfonts 无法替代） |
 
 ## 4.5 对比度校验
 
@@ -576,7 +614,7 @@ Tauri 窗口在 WebView 画出第一帧之前就已可见，深色主题用户�
 
 | # | 项目 | 影响 | 验证时机与候选解法 |
 | - | ---- | ---- | ------------------ |
-| 1 | **中文等宽对齐**：`Consolas` 不含 CJK 字形，中文回退到 `Microsoft YaHei`（非等宽）。中日韩字符能否正好占 2 个拉丁字符宽，取决于回退字体的字宽设计 | DC-04（Unicode）、FR-53（中日韩正常）在视觉上的落点；同时是 FR-14 列编辑对齐的前提 | **M1 开工第一个验证项**。若对不齐，候选解法：换用 CJK 等宽字体栈（如 Sarasa Mono SC，需确认授权与是否随包分发），或在字体栈中显式指定中日韩回退字体 |
+| 1 | **中文等宽对齐**：`Consolas` 不含 CJK 字形，中文回退到 `Microsoft YaHei`（非等宽）。中日韩字符能否正好占 2 个拉丁字符宽，取决于回退字体的字宽设计 | DC-04（Unicode）、FR-53（中日韩正常）在视觉上的落点；同时是 FR-14 列编辑对齐的前提 | **M1 开工第一个验证项**。若对不齐，候选解法：换用 CJK 等宽字体栈（如 Sarasa Mono SC，需确认授权与是否随包分发），或在字体栈中显式指定中日韩回退字体。**本项与 `--sp-font-mono` 的取值绑定**——等宽字体一旦变更（例如改为 §4.4.1 讨论的 FiraCode），本项必须重测 |
 | 2 | Naive UI 默认尺寸体系与本文档紧凑密度的冲突程度 | 影响 §5.1 中五个对话框的实现成本 | 因骨架已自定义（P1），冲突面已缩小到对话框内部；M5 实现设置对话框时评估 |
 | 3 | `tauri.conf.json` 的 `backgroundColor` 是否确实在 WebView 首次绘制前生效 | 决定 §8.1 能否真正消除启动闪白 | M1 实机验证（属性存在性已核实，生效时机未核实） |
 | 4 | CodeMirror 在高 DPI 三档下的光标宽度与行高取整 | PR-10、UI-07 | M1 与 §7.6 一并人工验证 |
@@ -657,4 +695,5 @@ Tauri 窗口在 WebView 画出第一帧之前就已可见，深色主题用户�
 5. Tauri 2 窗口配置 schema，`node_modules/@tauri-apps/cli/config.schema.json`
 6. Naive UI 官方文档（主题系统与 `themeOverrides`、`n-icon`）
 7. xicons 官方站点与 `@vicons/*` 包族（Naive UI 官方推荐的图标库；本项目选用 `@vicons/fluent`）
-8. CodeMirror 6 官方文档（`EditorView.theme`、`Compartment`、`rectangularSelection`）
+8. `vfonts` 包（Naive UI 官方推荐的字体包；本项目**评估后未采用**，理由见 §4.4.1）
+9. CodeMirror 6 官方文档（`EditorView.theme`、`Compartment`、`rectangularSelection`）
