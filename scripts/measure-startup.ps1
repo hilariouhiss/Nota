@@ -15,8 +15,8 @@ if ($Runs -lt 1) {
   exit 0
 }
 
-# 被测 exe 由 `pnpm exec tauri build --no-bundle` 产出（只出可执行文件，不打安装包）
-$exe = Resolve-Path "src-tauri/target/release/scribapad.exe" -ErrorAction Stop
+# 被测 exe 由 `pnpm exec tauri build --no-bundle` 产出（只出可执行文件，不打安装包；产物名为 Cargo 包名 nota）
+$exe = Resolve-Path "src-tauri/target/release/nota.exe" -ErrorAction Stop
 Write-Host "被测程序：$exe"
 Write-Host "运行 $Runs 次，每次启动后采样空闲内存并退出。`n"
 

@@ -270,7 +270,7 @@ export const MENU_MODEL: TopLevelMenu[] = [
         command: "help.shortcuts",
       },
       { label: "", separator: true, version: "V1.0" },
-      { label: "关于 ScribaPad", requirement: "OR-03", version: "V1.0", command: "help.about" },
+      { label: "关于 Nota", requirement: "OR-03", version: "V1.0", command: "help.about" },
     ],
   },
 ];
