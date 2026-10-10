@@ -36,6 +36,21 @@ describe("AppShell", () => {
   it("折叠态下面板只保留页签条（设计规范 §3.2）", async () => {
     const { wrapper } = await mountShell();
     expect(wrapper.find("[data-region='dock']").attributes("data-collapsed")).toBe("true");
+    expect(wrapper.find(".dock-tabs").exists()).toBe(true);
+    expect(wrapper.find(".dock-body").exists()).toBe(false);
+  });
+
+  it("点页签条展开面板，点 × 回到折叠（设计规范 §3.2）", async () => {
+    const { wrapper } = await mountShell();
+    expect(wrapper.find("[data-region='dock']").attributes("data-collapsed")).toBe("true");
+
+    await wrapper.findAll(".dt")[1].trigger("click");
+    expect(wrapper.find("[data-region='dock']").attributes("data-collapsed")).toBe("false");
+    expect(wrapper.find(".dock-body").exists()).toBe(true);
+
+    await wrapper.find(".cl").trigger("click");
+    expect(wrapper.find("[data-region='dock']").attributes("data-collapsed")).toBe("true");
+    expect(wrapper.find(".dock-body").exists()).toBe(false);
   });
 
   it("挂载即创建「未命名 1」并选中（设计规范 §3.4：不做欢迎页）", async () => {

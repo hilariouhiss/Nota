@@ -20,6 +20,11 @@ describe("DockPanel", () => {
     expect(wrapper.findAll(".dt").map((n) => n.text())).toEqual(["查找 / 替换", "在文件中查找"]);
   });
 
+  it("activeTab 初值决定高亮页签（R41：初值来自 prop，不是写死的 find-replace）", () => {
+    const wrapper = mount(DockPanel, { props: { collapsed: true, activeTab: "search-in-files" } });
+    expect(wrapper.find(".dt.on").text()).toBe("在文件中查找");
+  });
+
   it("点击页签切换，点关闭 emit close", async () => {
     const wrapper = mount(DockPanel, { props: { collapsed: true } });
     await wrapper.findAll(".dt")[1].trigger("click");

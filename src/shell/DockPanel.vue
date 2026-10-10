@@ -92,6 +92,10 @@ function select(id: string) {
   background: transparent;
   cursor: pointer;
 }
+.cl:focus-visible {
+  outline: 2px solid var(--sp-focus-ring);
+  outline-offset: -2px;
+}
 .dock-body {
   flex: 0 0 var(--sp-dock-h);
   padding: calc(var(--sp-pad) * 0.9) var(--sp-pad);
