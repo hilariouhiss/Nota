@@ -81,8 +81,13 @@ export function tokensToEditorTheme(t: ThemeTokens): Record<string, Record<strin
       borderRight: `1px solid ${t.color.border}`,
     },
     // 多光标/矩形选区下 CodeMirror 会给每一条含光标的行都加这个类（highlightActiveLine 的既定语义：
-    // 「凡有光标的行」），所以列编辑时整片偏蓝是预期的；精确选区由 drawSelection 画在它之上
-    ".cm-activeLine": { backgroundColor: t.color.accentSoft },
+    // 「凡有光标的行」），所以列编辑时整片偏蓝是预期的；精确选区由 drawSelection 画在它之上。
+    // 选区绘制层在内容之下（CodeMirror 的图层 z-index 为 -1），当前行底色必须带 alpha，
+    // 否则会把本行的选区矩形整片盖住；CodeMirror 自身默认值同样是半透明（#cceeff44）。
+    // 45% 是实测折中：既有可见的「当前行」提示，又不吃掉 22% accent 的选区矩形。
+    ".cm-activeLine": {
+      backgroundColor: `color-mix(in srgb, ${t.color.accentSoft} 45%, transparent)`,
+    },
     // 覆盖基座给的灰色 #d9d9d9；聚焦时基座那条特异性更高（#d7d4f0），必须用同样的选择器形状压过
     ".cm-selectionBackground": { backgroundColor: selectionBg },
     "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
