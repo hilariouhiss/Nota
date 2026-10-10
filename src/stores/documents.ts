@@ -20,10 +20,23 @@ export const useDocumentsStore = defineStore("documents", () => {
 
   const activeTab = computed(() => tabs.value.find((t) => t.id === activeId.value));
 
+  /** 未命名文档取「最小的未占用编号」：按标签数编号会在删除后撞名（未命名 2、3、3） */
+  function nextUntitledTitle(): string {
+    const used = new Set(
+      tabs.value
+        .map((t) => /^未命名 (\d+)$/.exec(t.title)?.[1])
+        .filter((n): n is string => n !== undefined)
+        .map(Number),
+    );
+    let n = 1;
+    while (used.has(n)) n++;
+    return `未命名 ${n}`;
+  }
+
   function newDocument(title?: string): DocumentTab {
     const tab: DocumentTab = {
       id: nextId(),
-      title: title ?? `未命名 ${tabs.value.length + 1}`,
+      title: title ?? nextUntitledTitle(),
       dirty: false,
       path: null,
       content: "",

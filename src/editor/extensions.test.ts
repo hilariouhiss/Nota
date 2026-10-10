@@ -1,7 +1,11 @@
+// @vitest-environment jsdom
 import { EditorSelection, EditorState } from "@codemirror/state";
-import { keymap } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { describe, expect, it } from "vite-plus/test";
 import { createBaseExtensions, positionOf } from "./extensions";
+
+// jsdom 没实现 Range.getClientRects；CodeMirror 量行高/字宽走的就是它（与 AppShell.test.ts 同一缺口）
+Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 
 const stateWith = (doc: string) =>
   EditorState.create({ doc, extensions: createBaseExtensions({ tabSize: 4, lineNumbers: true }) });
@@ -70,6 +74,32 @@ describe("基础编辑器扩展", () => {
       selection: EditorSelection.create([EditorSelection.cursor(0), EditorSelection.cursor(3)]),
     }).state;
     expect(multi.selection.ranges.length).toBe(2);
+  });
+
+  /**
+   * 挂一个真实 EditorView（jsdom），而不是只看扩展数组的长度：
+   * `drawSelection()` 是唯一会创建 `.cm-selectionLayer` 的扩展，多区间选区全靠它画矩形。
+   * 没有它，除第一个区间以外全部不可见（只有浏览器原生选区在画）。
+   *
+   * 断言只能落在图层元素上、落不到 `.cm-selectionBackground` 矩形上：jsdom 没有布局引擎，
+   * CodeMirror 的 `coordsAtPos` 返回 null，矩形在 jsdom 下永远画不出来（真实浏览器里才画）。
+   * 这条断言的可证伪性用「删掉 drawSelection()」的变异实测（见报告）。
+   */
+  it("装配 drawSelection：创建了选区绘制层（多区间选区除第一段以外也要可见）", () => {
+    const parent = document.createElement("div");
+    document.body.appendChild(parent);
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: "",
+        extensions: createBaseExtensions({ tabSize: 4, lineNumbers: true }),
+      }),
+    });
+    try {
+      expect(view.dom.querySelector(".cm-selectionLayer")).not.toBeNull();
+    } finally {
+      view.destroy();
+    }
   });
 });
 

@@ -57,6 +57,10 @@ export function tokensToNaiveOverrides(
 
 /** 令牌 → CodeMirror EditorView.theme 的样式对象 */
 export function tokensToEditorTheme(t: ThemeTokens): Record<string, Record<string, string>> {
+  // §4.2：选中文本底色 = accent 22%（浅）/ 28%（深），叠加在编辑区上。
+  // 规范给的是配方不是常量，所以就地派生；ThemeTokens 的颜色键必须都是不透明 #rrggbb
+  const selectionPct = t.name === "dark" ? 28 : 22;
+  const selectionBg = `color-mix(in srgb, ${t.color.accent} ${selectionPct}%, transparent)`;
   return {
     "&": {
       color: t.color.editorText,
@@ -76,6 +80,13 @@ export function tokensToEditorTheme(t: ThemeTokens): Record<string, Record<strin
       backgroundColor: t.color.bgSurface,
       borderRight: `1px solid ${t.color.border}`,
     },
+    // 多光标/矩形选区下 CodeMirror 会给每一条含光标的行都加这个类（highlightActiveLine 的既定语义：
+    // 「凡有光标的行」），所以列编辑时整片偏蓝是预期的；精确选区由 drawSelection 画在它之上
     ".cm-activeLine": { backgroundColor: t.color.accentSoft },
+    // 覆盖基座给的灰色 #d9d9d9；聚焦时基座那条特异性更高（#d7d4f0），必须用同样的选择器形状压过
+    ".cm-selectionBackground": { backgroundColor: selectionBg },
+    "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
+      backgroundColor: selectionBg,
+    },
   };
 }

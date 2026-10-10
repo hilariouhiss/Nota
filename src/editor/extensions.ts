@@ -9,6 +9,7 @@ import { EditorState, type Extension } from "@codemirror/state";
 import {
   EditorView,
   crosshairCursor,
+  drawSelection,
   highlightActiveLine,
   highlightActiveLineGutter,
   keymap,
@@ -54,6 +55,9 @@ export function createBaseExtensions(opts: BaseExtensionOptions): Extension[] {
   ];
   if (opts.lineNumbers) exts.push(lineNumbers(), highlightActiveLineGutter());
   if (opts.activeLine !== false) exts.push(highlightActiveLine());
+  // 多区间选区必须靠它绘制（.cm-selectionLayer / .cm-selectionBackground 矩形）：
+  // 基座里没有它就只有浏览器原生选区，而原生选区只画第一个区间，Alt+拖拽的列编辑其余各行全不可见
+  exts.push(drawSelection());
   if (opts.bracketMatching !== false) exts.push(bracketMatching());
   if (opts.rectangularSelection !== false) exts.push(rectangularSelection(), crosshairCursor());
   return exts;

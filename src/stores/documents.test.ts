@@ -44,4 +44,19 @@ describe("documents store", () => {
     s.setDirty(s.tabs[0].id, true);
     expect(s.activeTab?.dirty).toBe(true);
   });
+
+  it("删除后新建取最小未占用编号：不会与在建的标签撞名", () => {
+    const s = useDocumentsStore();
+    s.newDocument();
+    s.newDocument();
+    s.newDocument();
+    expect(s.tabs.map((t) => t.title)).toEqual(["未命名 1", "未命名 2", "未命名 3"]);
+
+    s.closeDocument(s.tabs[0].id);
+    const created = s.newDocument();
+
+    // 按标签数编号会得到「未命名 3」，于是出现两个「未命名 3」
+    expect(created.title).toBe("未命名 1");
+    expect(new Set(s.tabs.map((t) => t.title)).size).toBe(s.tabs.length);
+  });
 });

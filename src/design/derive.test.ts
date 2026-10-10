@@ -90,6 +90,26 @@ describe("tokensToEditorTheme", () => {
     // 必须落在 .cm-scroller（承载行高的元素）上，写在 "&" 上会被基座的后代规则盖过
     expect(theme[".cm-scroller"].lineHeight).toBe("1.45");
   });
+
+  /**
+   * §4.2 的 `--sp-editor-selection` 是「accent 22%（浅）/ 28%（深）叠加在编辑区上」这条**配方**，
+   * 不是十六进制常量，所以就地派生、不进 ThemeTokens（T1 要求颜色键都是不透明 #rrggbb）。
+   * 两条规则都要覆盖：基座在 `.cm-selectionBackground` 上给灰色 #d9d9d9，
+   * 聚焦时那条 `&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground`
+   * 特异性更高（#d7d4f0），只覆盖前者在真实浏览器里依然是基座的灰紫色。
+   */
+  it.each([
+    ["浅色", LIGHT_TOKENS, "#2f6fd0", "22%"],
+    ["深色", DARK_TOKENS, "#6ea8fe", "28%"],
+  ] as const)("%s主题：选中底色由 accent 按规范百分比派生", (_name, tokens, accent, pct) => {
+    const theme = tokensToEditorTheme(tokens);
+    const expected = `color-mix(in srgb, ${accent} ${pct}, transparent)`;
+    expect(theme[".cm-selectionBackground"].backgroundColor).toBe(expected);
+    expect(
+      theme["&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground"]
+        .backgroundColor,
+    ).toBe(expected);
+  });
 });
 
 describe("对比度（WCAG 2.1）", () => {
