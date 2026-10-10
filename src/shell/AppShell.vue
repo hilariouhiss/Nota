@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import StatusBar from "./StatusBar.vue";
 
 const dockCollapsed = ref(true);
 </script>
@@ -11,7 +12,11 @@ const dockCollapsed = ref(true);
     <div class="region tabs" data-region="tabs" />
     <div class="region editor" data-region="editor"><slot /></div>
     <div class="region dock" data-region="dock" :data-collapsed="String(dockCollapsed)" />
-    <div class="region status" data-region="status" />
+    <div class="region status" data-region="status">
+      <!-- 占位值：真实行列号由 Task 8（EditorHost 上报）/ Task 11（AppShell 接线）补上。
+           line/column 必须用绑定（数字字面量），静态属性是字符串，vue-tsc 会报 TS2322 -->
+      <StatusBar :line="1" :column="1" language="纯文本" encoding="UTF-8" eol="CRLF" />
+    </div>
   </div>
 </template>
 
