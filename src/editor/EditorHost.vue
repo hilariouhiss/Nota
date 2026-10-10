@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTokens } from "../design/apply";
 import { createBaseExtensions, positionOf } from "./extensions";
+import { createEditorTheme } from "./theme";
 
 const props = withDefaults(defineProps<{ doc?: string; lineNumbers?: boolean }>(), {
   doc: "",
@@ -14,6 +15,7 @@ const emit = defineEmits<{ position: [{ line: number; column: number }] }>();
 
 const host = ref<HTMLDivElement | null>(null);
 const { tokens } = useTokens();
+const themeCompartment = new Compartment();
 let view: EditorView | null = null;
 
 onMounted(() => {
@@ -27,6 +29,7 @@ onMounted(() => {
           tabSize: tokens.value.typography.tabSize,
           lineNumbers: props.lineNumbers,
         }),
+        themeCompartment.of(createEditorTheme(tokens.value)),
         EditorView.updateListener.of((update) => {
           if (update.selectionSet || update.docChanged) emit("position", positionOf(update.state));
         }),
@@ -36,6 +39,12 @@ onMounted(() => {
   // 初始位置：不交互时状态栏也应显示「行 1，列 1」
   emit("position", positionOf(view.state));
 });
+
+// 主题变化时热替换，不重建 view：重建会丢失撤销历史与滚动位置（§4.1）
+watch(
+  () => tokens.value.name,
+  () => view?.dispatch({ effects: themeCompartment.reconfigure(createEditorTheme(tokens.value)) }),
+);
 
 // 行数/状态由 ViewPlugin 上报，此处只处理显式传入的文档替换
 watch(
