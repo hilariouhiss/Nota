@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>中文字宽探针</title>
+    <style>
+      body {
+        font:
+          13px "Segoe UI",
+          "Microsoft YaHei",
+          sans-serif;
+        padding: 20px;
+      }
+      table {
+        border-collapse: collapse;
+        margin-top: 12px;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 4px 10px;
+        text-align: left;
+      }
+      .pass {
+        color: #1a7f37;
+        font-weight: 600;
+      }
+      .fail {
+        color: #c0392b;
+        font-weight: 600;
+      }
+      code {
+        background: #f3f3f3;
+        padding: 1px 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>中文字宽探针</h1>
+    <p>
+      判定规则：<b>中日韩字符的宽度必须正好等于拉丁字符宽度的 2 倍</b>（误差 &lt; 0.1px）。
+      不满足则列编辑无法对齐，需更换等宽字体栈。
+    </p>
+    <div id="out"></div>
+    <script type="module" src="/probe/cjk-width.ts"></script>
+  </body>
+</html>
