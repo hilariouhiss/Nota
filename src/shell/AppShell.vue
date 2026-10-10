@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import StatusBar from "./StatusBar.vue";
+import TabBar from "./TabBar.vue";
 
 const dockCollapsed = ref(true);
 </script>
@@ -9,7 +10,13 @@ const dockCollapsed = ref(true);
   <div class="shell">
     <div class="region" data-region="menu" />
     <div class="region" data-region="toolbar" />
-    <div class="region" data-region="tabs" />
+    <div class="region" data-region="tabs">
+      <!-- 占位数据：真实标签由 Task 11 的 documents store 接管 -->
+      <TabBar
+        :tabs="[{ id: 'untitled-1', title: '未命名 1', dirty: false }]"
+        active-id="untitled-1"
+      />
+    </div>
     <div class="region" data-region="editor"><slot /></div>
     <div class="region" data-region="dock" :data-collapsed="String(dockCollapsed)" />
     <div class="region" data-region="status">
