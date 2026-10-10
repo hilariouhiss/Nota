@@ -13,6 +13,14 @@ Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 const injectedCss = () =>
   [...document.head.querySelectorAll("style")].map((s) => s.textContent ?? "").join("\n");
 
+/**
+ * 只认「正文色声明本身」：声明名左边必须是行首/`{`/`;`/空白，右边必须是 `;`/`}`/结尾。
+ * 单纯的子串匹配证明不了什么——正文色与光标色按设计同值（editorCaret === editorText），
+ * 子串会被 caret-color / border-left-color 蒙对（把 derive.ts 的 color 改成常量也照样绿）。
+ */
+const hasDecl = (css: string, value: string) =>
+  new RegExp(`(^|[;{\\s])color:\\s*${value}\\s*(;|}|$)`, "i").test(css);
+
 /** 真挂一个 EditorView：主题模块只在被某个视图用到时才由 style-mod 注入，光调 createEditorTheme 什么也证明不了 */
 function mountView(compartment: Compartment, theme = createEditorTheme(LIGHT_TOKENS)) {
   const parent = document.createElement("div");
@@ -28,16 +36,16 @@ function mountView(compartment: Compartment, theme = createEditorTheme(LIGHT_TOK
 }
 
 describe("编辑器主题", () => {
-  it("注入的样式含浅色令牌的正文色；热替换到深色后含深色令牌的正文色", () => {
+  it("注入的样式含浅色令牌的正文色声明；热替换到深色后含深色令牌的正文色声明", () => {
     const compartment = new Compartment();
     const view = mountView(compartment);
     try {
       // 正文色用 --sp-editor-text：浅深两套取值不同（#1f1f1f / #e6e6e6），能区分「注入的是哪一套」
-      expect(injectedCss()).toContain(LIGHT_TOKENS.color.editorText);
+      expect(hasDecl(injectedCss(), LIGHT_TOKENS.color.editorText)).toBe(true);
       expect(LIGHT_TOKENS.color.editorText).not.toBe(DARK_TOKENS.color.editorText);
 
       view.dispatch({ effects: compartment.reconfigure(createEditorTheme(DARK_TOKENS)) });
-      expect(injectedCss()).toContain(DARK_TOKENS.color.editorText);
+      expect(hasDecl(injectedCss(), DARK_TOKENS.color.editorText)).toBe(true);
     } finally {
       view.destroy();
     }

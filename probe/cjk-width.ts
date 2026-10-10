@@ -4,6 +4,13 @@
 // 结论待设计裁定：2:1 需要拉丁等宽字的前进宽度恰为 0.5em，
 // 当前 Consolas 系（Consolas 0.55em、Cascadia Mono 0.586em）在数学上不可能满足。
 // 换字体栈属设计变更，不在此处自行改动。
+//
+// 候选字体实测（2026-10-10，同一 canvas 度量、13px）：
+//   "Sarasa Term SC" + Consolas 回退 → 拉丁 6.500px / 中日韩 13.000px，比值 2.0000、差值 0.000（73 个简体字逐一 13.00px，完全均匀）
+//   "MS Gothic"                      → 简体字逐字宽度 13/14 混杂（缺字回退），比值不稳定，不可用
+//   泛型 monospace                   → 本机恰好 2:1，但取决于 Chromium 默认固定字体设置，不可作为规范取值
+//   "NSimSun" / "Noto Sans Mono CJK SC" → 本机未安装，测值实为回退，不可作为候选
+// 采用 Sarasa 需同时确认授权与分发方式（SIL OFL 1.1，可随包分发，但与设计规范 §4.4.1「不引入内嵌字体」冲突）→ 属设计变更。
 const MONO_FONT = 'Consolas, "Cascadia Mono", "Microsoft YaHei", monospace';
 const SIZE = 13;
 const LATIN = "MMMMMMMMMM"; // 10 个拉丁字符
