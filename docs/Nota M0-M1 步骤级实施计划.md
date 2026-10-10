@@ -33,26 +33,26 @@
 
 先锁定文件职责，任务划分据此展开。
 
-| 路径 | 职责 |
-| ---- | ---- |
-| `src/design/tokens.ts` | `ThemeTokens` 类型 + 内置浅/深两套值。**样式唯一源** |
-| `src/design/derive.ts` | 三个纯函数：令牌 → CSS 变量 / CodeMirror 主题 / Naive UI overrides |
-| `src/design/apply.ts` | 把派生结果写到 DOM 与 Naive UI（唯一有副作用的一层） |
-| `src/shell/AppShell.vue` | 六区域编排与令牌注入 |
-| `src/shell/MenuBar.vue` | 顶层菜单、下拉、键盘导航 |
-| `src/shell/ToolBar.vue` | 按钮组与溢出菜单 |
-| `src/shell/TabBar.vue` | 标签显示、切换、关闭、未保存标记 |
-| `src/shell/StatusBar.vue` | 左侧信息段、右侧可点击字段、溢出优先级 |
-| `src/shell/DockPanel.vue` | 底部统一容器：页签条、内容区、拖拽调高、折叠 |
-| `src/editor/EditorHost.vue` | CodeMirror 生命周期封装，不含产品逻辑 |
-| `src/editor/extensions.ts` | 编辑器扩展装配（行号、括号匹配、当前行高亮、列编辑） |
-| `src/editor/theme.ts` | 令牌 → `EditorView.theme`，经 `Compartment` 支持热替换 |
-| `src/stores/documents.ts` | 文档集合与活动标签 |
-| `src/menu/model.ts` | 菜单结构数据（菜单栏与状态栏共用） |
-| `src/dev/measure-cjk-width.ts` | 中文字宽探针（Task 3） |
-| `src/main.ts` | 应用入口：装 Pinia、注入令牌、挂载 AppShell |
-| `probe/cjk-width.html` | 字宽探针页面，`vp dev` 下直接打开 |
-| `.github/workflows/ci.yml` | CI |
+| 路径                           | 职责                                                               |
+| ------------------------------ | ------------------------------------------------------------------ |
+| `src/design/tokens.ts`         | `ThemeTokens` 类型 + 内置浅/深两套值。**样式唯一源**               |
+| `src/design/derive.ts`         | 三个纯函数：令牌 → CSS 变量 / CodeMirror 主题 / Naive UI overrides |
+| `src/design/apply.ts`          | 把派生结果写到 DOM 与 Naive UI（唯一有副作用的一层）               |
+| `src/shell/AppShell.vue`       | 六区域编排与令牌注入                                               |
+| `src/shell/MenuBar.vue`        | 顶层菜单、下拉、键盘导航                                           |
+| `src/shell/ToolBar.vue`        | 按钮组与溢出菜单                                                   |
+| `src/shell/TabBar.vue`         | 标签显示、切换、关闭、未保存标记                                   |
+| `src/shell/StatusBar.vue`      | 左侧信息段、右侧可点击字段、溢出优先级                             |
+| `src/shell/DockPanel.vue`      | 底部统一容器：页签条、内容区、拖拽调高、折叠                       |
+| `src/editor/EditorHost.vue`    | CodeMirror 生命周期封装，不含产品逻辑                              |
+| `src/editor/extensions.ts`     | 编辑器扩展装配（行号、括号匹配、当前行高亮、列编辑）               |
+| `src/editor/theme.ts`          | 令牌 → `EditorView.theme`，经 `Compartment` 支持热替换             |
+| `src/stores/documents.ts`      | 文档集合与活动标签                                                 |
+| `src/menu/model.ts`            | 菜单结构数据（菜单栏与状态栏共用）                                 |
+| `src/dev/measure-cjk-width.ts` | 中文字宽探针（Task 3）                                             |
+| `src/main.ts`                  | 应用入口：装 Pinia、注入令牌、挂载 AppShell                        |
+| `probe/cjk-width.html`         | 字宽探针页面，`vp dev` 下直接打开                                  |
+| `.github/workflows/ci.yml`     | CI                                                                 |
 
 **不建立**：`src/components/ui/`（M1 无通用 UI 组件需求）、任何 `AppIcon.vue` 封装（`n-icon` 已完成归一，见规范 §6.5.2）。
 
@@ -63,11 +63,13 @@
 这是第一个真实交付物，同时把 `test` 脚本建起来——前端测试基建**不需要额外搭建**，`vp test` 已内置 Vitest。
 
 **文件：**
+
 - 创建：`src/design/tokens.ts`
 - 创建：`src/design/tokens.test.ts`
 - 修改：`package.json`（加 `test` 脚本）
 
 **接口：**
+
 - 产出：`ThemeTokens` 类型、`LIGHT_TOKENS`、`DARK_TOKENS`（Task 2、4 消费）
 
 - [ ] **Step 1: 写失败的测试**
@@ -275,11 +277,13 @@ git commit -m "feat(design): 新增设计令牌模块与首条测试"
 ### Task 2: 三个派生纯函数与对比度断言
 
 **文件：**
+
 - 创建：`src/design/derive.ts`
 - 创建：`src/design/derive.test.ts`
 - 创建：`src/design/contrast.ts`（WCAG 计算，被测试与后续校验共用）
 
 **接口：**
+
 - 消费：Task 1 的 `ThemeTokens`、`LIGHT_TOKENS`、`DARK_TOKENS`
 - 产出：`tokensToCssVars(tokens): Record<string, string>`、`tokensToEditorTheme(tokens): Record<string, Record<string, string>>`、`tokensToNaiveOverrides(tokens): Record<string, Record<string, string | number>>`
 
@@ -494,6 +498,7 @@ git commit -m "feat(design): 令牌派生纯函数与 WCAG 对比度断言"
 本任务**不产出单元测试**（字体度量需要真实渲染引擎，jsdom 没有），产出的是一个**可重复的测量过程与结论**。判定规则见 Step 4，必须照做。
 
 **文件：**
+
 - 创建：`probe/cjk-width.html`
 - 修改：`src/design/tokens.ts`（据结论确定 `MONO_FONT` 并移除 TODO 注释）
 
@@ -602,11 +607,13 @@ git commit -m "test(design): 中文字宽探针与实测结论"
 ### Task 4: 引入运行时依赖并接上令牌注入
 
 **文件：**
+
 - 修改：`package.json`（pnpm add）
 - 创建：`src/design/apply.ts`
 - 修改：`src/main.ts`
 
 **接口：**
+
 - 消费：Task 1 的 `ThemeTokens`、`LIGHT_TOKENS`；Task 2 的 `tokensToCssVars`、`tokensToNaiveOverrides`
 - 产出：`applyTokens(tokens): void`、`useTokens(): { tokens, setTheme }`（Task 5～14 全部消费）
 
@@ -738,11 +745,13 @@ git commit -m "feat(app): 引入运行时依赖并接入令牌注入"
 ### Task 5: AppShell 六区域骨架
 
 **文件：**
+
 - 创建：`src/shell/AppShell.vue`
 - 创建：`src/shell/AppShell.test.ts`
 - 修改：`src/App.vue`（改为渲染 AppShell，删除脚手架的 greet 演示）
 
 **接口：**
+
 - 消费：Task 4 的令牌注入
 - 产出：AppShell 组件，内部依次渲染 `MenuBar` / `ToolBar` / `TabBar` / 编辑区槽位 / `DockPanel` / `StatusBar`（Task 6～14 逐个替换为真实组件）
 
@@ -869,11 +878,13 @@ git commit -m "feat(shell): AppShell 六区域骨架"
 ### Task 6: StatusBar
 
 **文件：**
+
 - 创建：`src/shell/StatusBar.vue`
 - 创建：`src/shell/StatusBar.test.ts`
 - 修改：`src/shell/AppShell.vue:11`（把 `data-region="status"` 的占位 div 换成 `<StatusBar />`）
 
 **接口：**
+
 - 消费：Task 5 的 AppShell 槽位
 - 产出：`StatusBar` 组件，props：`{ line: number; column: number; language: string; encoding?: string; eol?: string }`
 
@@ -1017,11 +1028,13 @@ git commit -m "feat(shell): StatusBar 含可点击编码/换行符与窄窗降�
 ### Task 7: TabBar（单标签）
 
 **文件：**
+
 - 创建：`src/shell/TabBar.vue`
 - 创建：`src/shell/TabBar.test.ts`
 - 修改：`src/shell/AppShell.vue:10`（替换 `data-region="tabs"` 占位）
 
 **接口：**
+
 - 产出：`TabBar` 组件，props：`{ tabs: { id: string; title: string; dirty: boolean }[]; activeId: string }`；emits：`select(id)`、`close(id)`
 
 - [ ] **Step 1: 写失败的测试**
@@ -1177,12 +1190,14 @@ git commit -m "feat(shell): TabBar 含未保存标记、中键关闭与点击区
 ### Task 8: EditorHost 基础集成
 
 **文件：**
+
 - 创建：`src/editor/EditorHost.vue`
 - 创建：`src/editor/extensions.ts`
 - 创建：`src/editor/extensions.test.ts`
 - 修改：`src/shell/AppShell.vue:12`（编辑区槽位内放 `<EditorHost />`）
 
 **接口：**
+
 - 产出：`createBaseExtensions(opts): Extension[]`（供 Task 9、10 扩展）、`EditorHost` 组件
 
 - [ ] **Step 1: 写失败的测试**
@@ -1357,11 +1372,13 @@ git commit -m "feat(editor): EditorHost 与基础扩展装配"
 ### Task 9: 编辑器主题热替换与编辑增强
 
 **文件：**
+
 - 创建：`src/editor/theme.ts`
 - 创建：`src/editor/theme.test.ts`
 - 修改：`src/editor/EditorHost.vue`、`src/editor/extensions.ts`
 
 **接口：**
+
 - 消费：Task 2 的 `tokensToEditorTheme`、Task 4 的 `useTokens`
 - 产出：`createThemeCompartment(tokens): { compartment, reconfigure(tokens): void }`
 
@@ -1445,6 +1462,7 @@ git commit -m "feat(editor): 令牌驱动的编辑器主题与 Compartment 热�
 ### Task 10: 列编辑（FR-14）
 
 **文件：**
+
 - 修改：`src/editor/extensions.ts`
 - 修改：`src/editor/extensions.test.ts`
 
@@ -1505,11 +1523,13 @@ git commit -m "feat(editor): 列编辑（rectangularSelection + crosshairCursor�
 ### Task 11: documents store
 
 **文件：**
+
 - 创建：`src/stores/documents.ts`
 - 创建：`src/stores/documents.test.ts`
 - 修改：`src/shell/AppShell.vue`（接上 TabBar 与 EditorHost）
 
 **接口：**
+
 - 产出：`useDocumentsStore()`，含 `tabs`、`activeId`、`activeTab`、`newDocument(title)`、`closeDocument(id)`、`selectDocument(id)`、`setDirty(id, dirty)`
 
 - [ ] **Step 1: 写失败的测试**
@@ -1660,6 +1680,7 @@ git commit -m "feat(stores): documents store 含标签增删选与未保存标�
 ### Task 12: MenuBar
 
 **文件：**
+
 - 创建：`src/menu/model.ts`
 - 创建：`src/menu/model.test.ts`
 - 创建：`src/shell/MenuBar.vue`
@@ -1667,6 +1688,7 @@ git commit -m "feat(stores): documents store 含标签增删选与未保存标�
 - 修改：`src/shell/AppShell.vue:8`（替换 `data-region="menu"` 占位）
 
 **接口：**
+
 - 产出：`MENU_MODEL`（设计规范 §6.1 的七个顶层菜单，逐项含快捷键与启用条件）、`MenuBar` 组件
 
 - [ ] **Step 1: 写失败的测试**
@@ -1984,11 +2006,13 @@ git commit -m "feat(shell): MenuBar 与 V1.0 七菜单模型"
 ### Task 13: ToolBar 与图标接入
 
 **文件：**
+
 - 创建：`src/shell/ToolBar.vue`
 - 创建：`src/shell/ToolBar.test.ts`
 - 修改：`src/shell/AppShell.vue:9`（替换 `data-region="toolbar"` 占位）
 
 **接口：**
+
 - 消费：Task 12 的 `command` 命名约定（工具栏按钮 emit 同名 command）
 - 产出：`ToolBar` 组件，emits：`run(command)`
 
@@ -2155,11 +2179,13 @@ git commit -m "feat(shell): ToolBar 8 按钮与 n-icon 图标接入"
 ### Task 14: DockPanel 壳
 
 **文件：**
+
 - 创建：`src/shell/DockPanel.vue`
 - 创建：`src/shell/DockPanel.test.ts`
 - 修改：`src/shell/AppShell.vue:11`（替换 `data-region="dock"` 占位）
 
 **接口：**
+
 - 产出：`DockPanel` 组件，props：`{ collapsed: boolean }`；emits：`toggle`、`close`；具名插槽 `tab-find-replace`、`tab-search-in-files`、默认插槽为内容区
 
 M1 只搭壳：页签条 + 折叠 + 高度。页签内容由 M4／M7 填入。
@@ -2324,10 +2350,12 @@ git commit -m "feat(shell): DockPanel 壳（页签条 + 折叠 + 内容槽）"
 ### Task 15: 窗口配置与 Rust 测试基线
 
 **文件：**
+
 - 修改：`src-tauri/tauri.conf.json`
 - 修改：`src-tauri/src/lib.rs`（移除脚手架 `greet` 示例命令）
 
 **接口：**
+
 - 产出：符合设计规范 §8.1／§8.2 的窗口配置
 
 - [ ] **Step 1: 写配置**
@@ -2399,6 +2427,7 @@ git commit -m "chore(tauri): 窗口尺寸与启动背景色；移除脚手架示
 **这是里程碑出口标准的取证步骤**。AC-01（冷启动 ≤ 1.5 秒、热启动 ≤ 0.5 秒）与 PR-08（空闲内存基线）都是**人工判定**——本任务产出可复现的测量过程与记录，而不是自动化断言。
 
 **文件：**
+
 - 创建：`scripts/measure-startup.ps1`
 - 修改：`src/main.ts`（加启动计时输出）
 
@@ -2482,11 +2511,11 @@ pwsh scripts/measure-startup.ps1 -Runs 5
 ```markdown
 ## 执行记录
 
-| 项 | 要求 | 实测 | 日期 | 结论 |
-| -- | ---- | ---- | ---- | ---- |
-| AC-01 冷启动 | ≤ 1500 ms | （填实测中位数） | | |
-| PR-08 空闲内存 | 记录基线值 | （填实测中位数） MB | | |
-| §7.2 Tab 顺序与焦点可见 | 七个区域、焦点环可见 | （通过／不通过） | | |
+| 项                      | 要求                 | 实测                | 日期 | 结论 |
+| ----------------------- | -------------------- | ------------------- | ---- | ---- |
+| AC-01 冷启动            | ≤ 1500 ms            | （填实测中位数）    |      |      |
+| PR-08 空闲内存          | 记录基线值           | （填实测中位数） MB |      |      |
+| §7.2 Tab 顺序与焦点可见 | 七个区域、焦点环可见 | （通过／不通过）    |      |      |
 ```
 
 若 AC-01 超标：**先不要优化**。把实测值记录下来并报告——是否优化是产品决策（G-01 与实现成本的取舍），不是执行者可以自行决定的。
@@ -2503,6 +2532,7 @@ git commit -m "test(m1): AC-01 与 PR-08 取证脚本与实测记录"
 ### Task 17: CI
 
 **文件：**
+
 - 创建：`.github/workflows/ci.yml`
 
 - [ ] **Step 1: 写工作流**
@@ -2588,21 +2618,21 @@ git push
 
 设计规范 §8.3 把 M1 对应到具体章节，逐条核对：
 
-| Spec 章节 | 覆盖它的任务 |
-| --------- | ------------ |
-| §3.1 布局骨架 | Task 5 |
-| §3.2 底部面板 | Task 14 |
-| §3.4 边界状态 | Task 5（不可用按钮置灰在 Task 13；启动空态在 Task 11 的 store 测试） |
-| §4 全部令牌 | Task 1、Task 2 |
-| §5.1 的 M1 组件 | Task 5～14 |
-| §6.1～6.3 三栏 | Task 12、13、6 |
-| §6.5 图标 | Task 13 |
-| §7.1 标签 | Task 7、11 |
-| §7.2 焦点与键盘 | Task 12（Alt 与 Esc）；**Tab 顺序未单独设任务**——见下方缺口 |
-| §7.3 快捷键归属 | Task 12（仅菜单层）；**编辑器内表未接线**——见下方缺口 |
-| §8.1 启动背景色 | Task 15 |
-| §8.2 窗口尺寸 | Task 15 |
-| §9.1 第 1 项 中文字宽 | Task 3 |
+| Spec 章节             | 覆盖它的任务                                                         |
+| --------------------- | -------------------------------------------------------------------- |
+| §3.1 布局骨架         | Task 5                                                               |
+| §3.2 底部面板         | Task 14                                                              |
+| §3.4 边界状态         | Task 5（不可用按钮置灰在 Task 13；启动空态在 Task 11 的 store 测试） |
+| §4 全部令牌           | Task 1、Task 2                                                       |
+| §5.1 的 M1 组件       | Task 5～14                                                           |
+| §6.1～6.3 三栏        | Task 12、13、6                                                       |
+| §6.5 图标             | Task 13                                                              |
+| §7.1 标签             | Task 7、11                                                           |
+| §7.2 焦点与键盘       | Task 12（Alt 与 Esc）；**Tab 顺序未单独设任务**——见下方缺口          |
+| §7.3 快捷键归属       | Task 12（仅菜单层）；**编辑器内表未接线**——见下方缺口                |
+| §8.1 启动背景色       | Task 15                                                              |
+| §8.2 窗口尺寸         | Task 15                                                              |
+| §9.1 第 1 项 中文字宽 | Task 3                                                               |
 
 **发现两个缺口，已在本计划内闭环（不是留待日后）：**
 
@@ -2617,10 +2647,10 @@ git push
 
 Task 3 与 Task 16 没有自动化测试命令，两者都在正文中写明了原因，不是遗漏：
 
-| 任务 | 为何没有自动化测试 |
-| ---- | ------------------ |
-| Task 3 中文字宽 | 字体度量需要真实渲染引擎，jsdom 没有字体（`measureText` 返回 0）。与风险 I-02 同源 |
-| Task 16 AC-01／PR-08 | 路线图已定这两项为**人工判定**；本任务产出的是可复现的测量脚本与记录，不是断言 |
+| 任务                 | 为何没有自动化测试                                                                 |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| Task 3 中文字宽      | 字体度量需要真实渲染引擎，jsdom 没有字体（`measureText` 返回 0）。与风险 I-02 同源 |
+| Task 16 AC-01／PR-08 | 路线图已定这两项为**人工判定**；本任务产出的是可复现的测量脚本与记录，不是断言     |
 
 ### 3. 类型一致性
 
@@ -2638,11 +2668,13 @@ Task 3 与 Task 16 没有自动化测试命令，两者都在正文中写明了�
 ### Task 18: 编辑器快捷键接线（闭环 §7.3）
 
 **文件：**
+
 - 创建：`src/editor/commands.ts`
 - 创建：`src/editor/commands.test.ts`
 - 修改：`src/editor/EditorHost.vue`、`src/editor/extensions.ts`
 
 **接口：**
+
 - 消费：Task 12／13 的 `command` 字符串
 - 产出：`executeEditorCommand(view, command): boolean`、`EDITOR_KEYMAP`
 
@@ -2754,7 +2786,7 @@ git commit -m "feat(editor): 编辑器命令接线，闭环设计规范 §7.3"
 
 ## 任务依赖关系
 
-```
+```text
 Task 1 ──► Task 2 ──► Task 4 ──► Task 5 ──┬─► Task 6 ──┐
    │                      ▲               ├─► Task 7 ──┤
    └─► Task 3 ────────────┘               ├─► Task 8 ──┼─► Task 11 ──► Task 12 ──► Task 13
@@ -2793,46 +2825,46 @@ Task 16 的取证结果。测量机器：Windows 10 100% DPI 1920×1080；releas
 
 下表为**改名后产物（`nota.exe`）复测**值；此前的最终代码树（`25e16c1`）复测为 AC-01 中位数 46 ms、PR-08 中位数 27.9 MB，首次测量（构建于 `ae19836`）为 AC-01 中位数 47 ms、PR-08 中位数 25.9 MB，三次结论一致，差异来自其后新增的视图开关扩展。
 
-| 项 | 要求 | 实测 | 日期 | 结论 |
-| -- | ---- | ---- | ---- | ---- |
-| AC-01 冷启动 | ≤ 1500 ms | **48 ms**（5 次：77 / 45 / 31 / 48 / 48，中位数；首跑 77 ms 为冷启动，其余 31–48 ms 为热启动，均 ≤ 500 ms） | 2026-10-10 | 通过（判据为主窗口可见时刻，见脚本注释） |
-| PR-08 空闲内存 | 记录基线值 | **27.9 MB**（5 次：27.8 / 27.9 / 27.9 / 28.5 / 27.8，中位数） | 2026-10-10 | 基线已记录 |
-| §7.2 Tab 顺序与焦点可见 | 七个区域、焦点环可见 | 前四站实测通过；编辑区之后 `Tab` 与 `Shift+Tab` **都被 `indentWithTab` 消耗**，逃逸靠 CodeMirror 内建的「`Esc` 后 `Tab`」 | 2026-10-10 | **部分通过**（偏差与理由见下） |
+| 项                      | 要求                 | 实测                                                                                                                      | 日期       | 结论                                     |
+| ----------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------- |
+| AC-01 冷启动            | ≤ 1500 ms            | **48 ms**（5 次：77 / 45 / 31 / 48 / 48，中位数；首跑 77 ms 为冷启动，其余 31–48 ms 为热启动，均 ≤ 500 ms）               | 2026-10-10 | 通过（判据为主窗口可见时刻，见脚本注释） |
+| PR-08 空闲内存          | 记录基线值           | **27.9 MB**（5 次：27.8 / 27.9 / 27.9 / 28.5 / 27.8，中位数）                                                             | 2026-10-10 | 基线已记录                               |
+| §7.2 Tab 顺序与焦点可见 | 七个区域、焦点环可见 | 前四站实测通过；编辑区之后 `Tab` 与 `Shift+Tab` **都被 `indentWithTab` 消耗**，逃逸靠 CodeMirror 内建的「`Esc` 后 `Tab`」 | 2026-10-10 | **部分通过**（偏差与理由见下）           |
 
 ### 补充取证（Windows 运行时实测）
 
-| 项 | 要求 | 实测 | 结论 |
-| -- | ---- | ---- | ---- |
-| 窗口标题（§8.2） | `文件名 — Nota`（M1 无文件名） | `Nota`（改名后复测） | 通过（动态标题属 M2） |
-| 窗口尺寸（§8.2） | 1200 × 800，最小 640 × 400 | 客户区 **1200 × 800**（外框 1216 × 839）；窗口 `theme` 钉为 `Light`，标题栏与内容同为浅色（Windows 11 系统深色下不再出现两色割裂） | 通过 |
-| 区域高度（§3.1） | 24 / 28 / 26 / 弹性 / 26 / 22 | 24 / 28 / 26 / 582 / 26 / 22（展开面板时 dock 106、编辑区 502） | 通过 |
-| 面板内容区（§3.2） | 默认 80 | 展开时正好 **80px**；折叠态仅保留 25px 页签条 | 通过 |
-| 编辑区可用性 | 可输入、删除、撤销 | 真实浏览器：输入 → `行测试abc` → `行测试abcXYZ`，撤销 → 空 | 通过（IME 与 Alt+鼠标手势仍需人工） |
-| 列编辑（FR-14） | 多行同时输入 | 多区间选区 2 段成立；插入后 `"Xaa\nXbb"` | 通过（程序化等价路径，Alt+鼠标手势仍需人工） |
-| `edit.*` 菜单 | 全部在编辑区生效 | 复制行 `a\na\nb`、删除行、合并行 `a b`、上移/下移行 `b\na`、撤销、全选 0..3 均实测生效 | 通过（剪贴板三项由单测与安全降级覆盖，真实剪贴板仍需人工） |
+| 项                                | 要求                                              | 实测                                                                                                                                                                                                                                                                                                                                                                                                                          | 结论                                                        |
+| --------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 窗口标题（§8.2）                  | `文件名 — Nota`（M1 无文件名）                    | `Nota`（改名后复测）                                                                                                                                                                                                                                                                                                                                                                                                          | 通过（动态标题属 M2）                                       |
+| 窗口尺寸（§8.2）                  | 1200 × 800，最小 640 × 400                        | 客户区 **1200 × 800**（外框 1216 × 839）；窗口 `theme` 钉为 `Light`，标题栏与内容同为浅色（Windows 11 系统深色下不再出现两色割裂）                                                                                                                                                                                                                                                                                            | 通过                                                        |
+| 区域高度（§3.1）                  | 24 / 28 / 26 / 弹性 / 26 / 22                     | 24 / 28 / 26 / 582 / 26 / 22（展开面板时 dock 106、编辑区 502）                                                                                                                                                                                                                                                                                                                                                               | 通过                                                        |
+| 面板内容区（§3.2）                | 默认 80                                           | 展开时正好 **80px**；折叠态仅保留 25px 页签条                                                                                                                                                                                                                                                                                                                                                                                 | 通过                                                        |
+| 编辑区可用性                      | 可输入、删除、撤销                                | 真实浏览器：输入 → `行测试abc` → `行测试abcXYZ`，撤销 → 空                                                                                                                                                                                                                                                                                                                                                                    | 通过（IME 与 Alt+鼠标手势仍需人工）                         |
+| 列编辑（FR-14）                   | 多行同时输入                                      | 多区间选区 2 段成立；插入后 `"Xaa\nXbb"`                                                                                                                                                                                                                                                                                                                                                                                      | 通过（程序化等价路径，Alt+鼠标手势仍需人工）                |
+| `edit.*` 菜单                     | 全部在编辑区生效                                  | 复制行 `a\na\nb`、删除行、合并行 `a b`、上移/下移行 `b\na`、撤销、全选 0..3 均实测生效                                                                                                                                                                                                                                                                                                                                        | 通过（剪贴板三项由单测与安全降级覆盖，真实剪贴板仍需人工）  |
 | §7.2 Tab 顺序（CDP 真实按键走查） | 菜单栏 → 工具栏 → 标签栏 → 编辑区 → 面板 → 状态栏 | 菜单栏 → 工具栏(8) → 标签栏(2) → 编辑区；每站焦点环均为 2px `#2f6fd0`；**编辑区内 `Tab` 被 `indentWithTab` 消耗**（实测插入缩进），**`Shift+Tab` 同样被它消耗**（实测反缩进，并不能反向离开编辑区）；真正可用的逃逸是 CodeMirror 内建的「`Esc` 后 `Tab`」：按 `Esc` 后 2 秒内 `tabFocusMode` 生效，`Tab` 不再被拦截，顺序继续走到面板页签条 → 状态栏字段；面板页签条与状态栏字段本身可聚焦且焦点环同为 2px（按 DOM 顺序实测） | 见下方偏差说明（脚本 `.superpowers/tab-in-editor-cdp.mjs`） |
 
 ### M1 出口项中未达成／未验证的项
 
-| 出口项 | 状态 | 说明 |
-| ------ | ---- | ---- |
-| 中文字宽结论已记入 `tokens.ts`（Task 3） | **已裁定：接受不对齐** | 实测 FAIL：13px 下中日韩 13.000px = 拉丁 7.147px 的 **1.8188 倍**（差值 1.295px，阈值 < 0.1px）；产品决定 V1.0 接受该偏差，字体栈维持 `Consolas, "Cascadia Mono", "Microsoft YaHei", monospace`，影响面仅限列编辑（FR-14）在多行中文上纵向不对齐，中文显示本身不受影响。结论与实测值已记入 `tokens.ts`，探针与候选字体数据保留在 `probe/cjk-width.ts`。 |
-| 深色主题启动无白色闪光 | **M1 不可达（视为满足）** | M1 无主题持久化也无切换入口，应用恒以浅色启动，`backgroundColor: #ffffff` 与之相符；动态跟随上次主题按计划属 M5。 |
-| CI 两个 job 通过 | **未验证** | 仓库无 git remote，无法推送执行；五条等价命令已在本地逐条通过（`pnpm install --frozen-lockfile`、`vp check`、`vp test`、`vue-tsc -b`、`cargo test`）。 |
-| §7.2 Tab 顺序 | **部分通过** | 前四站顺序与焦点环经 CDP 真实按键实测通过。编辑区内 `Tab` 用于缩进：**`Tab` 与 `Shift+Tab` 都会被 `indentWithTab` 消耗**（实测插入／删除缩进）——原记录写的「可 `Shift+Tab` 反向到达面板与状态栏」是错的，本轮以实测更正；可用的逃逸是 CodeMirror 内建的「`Esc` 后 `Tab`」（`Esc` 后 2 秒内 `tabFocusMode` 生效，`Tab` 不再被拦截，顺序继续走到面板页签条 → 状态栏字段）。面板页签条与状态栏字段本身可聚焦、焦点环 2px（DOM 顺序实测）。「一路按 `Tab` 不被打断地走完七个区域」在本键盘模型下不可达：按规范 §7.3，编辑器内 `Tab` = 缩进，该顺序只在编辑器不拦截 `Tab` 时才自然成立。 |
-| 未保存标签关闭无确认（静默丢弃内容） | **未达成（归 M3）** | 规范 §7.5 的「保存／不保存／取消」三选确认按 §8.3 的里程碑对应归 M3（连带 §5.1 的 `ConfirmDialog`）。M1 没有保存路径（`file.save` 归 M2），所以关闭标签＝丢弃编辑区内容，且不给任何提示——**已知限制，记入 M3 计划**，M1 不补临时方案。 |
-| §9.1 第 3 项：`tauri.conf.json` 的 `backgroundColor` 是否在 WebView 首次绘制前生效 | **未验证** | M1 只写静态浅色（`backgroundColor` 取浅色编辑区底色，与启动主题天然一致），**未做首帧时序取证**。「深色主题启动无白色闪光」这条出口项的结论因此建立在「M1 恒以浅色启动」之上，而不是建立在时序实测上；深色启动路径归 M5，届时必须实测。 |
-| §9.1 第 5 项：`@vicons/fluent` 的 20k 导出 barrel 对 dev 启动／HMR 的影响 | **未实测** | 未测 `vp dev` 冷启动与 HMR 耗时，也未测产物体积（本轮验收只跑构建后的测试与类型检查）。若实测明显变慢，按规范 §9.1 第 5 项既定方案改深路径引入单个图标（`@vicons/fluent/es/Save20Regular`）。 |
+| 出口项                                                                             | 状态                      | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 中文字宽结论已记入 `tokens.ts`（Task 3）                                           | **已裁定：接受不对齐**    | 实测 FAIL：13px 下中日韩 13.000px = 拉丁 7.147px 的 **1.8188 倍**（差值 1.295px，阈值 < 0.1px）；产品决定 V1.0 接受该偏差，字体栈维持 `Consolas, "Cascadia Mono", "Microsoft YaHei", monospace`，影响面仅限列编辑（FR-14）在多行中文上纵向不对齐，中文显示本身不受影响。结论与实测值已记入 `tokens.ts`，探针与候选字体数据保留在 `probe/cjk-width.ts`。                                                                                                                                                                                                                             |
+| 深色主题启动无白色闪光                                                             | **M1 不可达（视为满足）** | M1 无主题持久化也无切换入口，应用恒以浅色启动，`backgroundColor: #ffffff` 与之相符；动态跟随上次主题按计划属 M5。                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| CI 两个 job 通过                                                                   | **未验证**                | 仓库无 git remote，无法推送执行；五条等价命令已在本地逐条通过（`pnpm install --frozen-lockfile`、`vp check`、`vp test`、`vue-tsc -b`、`cargo test`）。                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| §7.2 Tab 顺序                                                                      | **部分通过**              | 前四站顺序与焦点环经 CDP 真实按键实测通过。编辑区内 `Tab` 用于缩进：**`Tab` 与 `Shift+Tab` 都会被 `indentWithTab` 消耗**（实测插入／删除缩进）——原记录写的「可 `Shift+Tab` 反向到达面板与状态栏」是错的，本轮以实测更正；可用的逃逸是 CodeMirror 内建的「`Esc` 后 `Tab`」（`Esc` 后 2 秒内 `tabFocusMode` 生效，`Tab` 不再被拦截，顺序继续走到面板页签条 → 状态栏字段）。面板页签条与状态栏字段本身可聚焦、焦点环 2px（DOM 顺序实测）。「一路按 `Tab` 不被打断地走完七个区域」在本键盘模型下不可达：按规范 §7.3，编辑器内 `Tab` = 缩进，该顺序只在编辑器不拦截 `Tab` 时才自然成立。 |
+| 未保存标签关闭无确认（静默丢弃内容）                                               | **未达成（归 M3）**       | 规范 §7.5 的「保存／不保存／取消」三选确认按 §8.3 的里程碑对应归 M3（连带 §5.1 的 `ConfirmDialog`）。M1 没有保存路径（`file.save` 归 M2），所以关闭标签＝丢弃编辑区内容，且不给任何提示——**已知限制，记入 M3 计划**，M1 不补临时方案。                                                                                                                                                                                                                                                                                                                                              |
+| §9.1 第 3 项：`tauri.conf.json` 的 `backgroundColor` 是否在 WebView 首次绘制前生效 | **未验证**                | M1 只写静态浅色（`backgroundColor` 取浅色编辑区底色，与启动主题天然一致），**未做首帧时序取证**。「深色主题启动无白色闪光」这条出口项的结论因此建立在「M1 恒以浅色启动」之上，而不是建立在时序实测上；深色启动路径归 M5，届时必须实测。                                                                                                                                                                                                                                                                                                                                             |
+| §9.1 第 5 项：`@vicons/fluent` 的 20k 导出 barrel 对 dev 启动／HMR 的影响          | **未实测**                | 未测 `vp dev` 冷启动与 HMR 耗时，也未测产物体积（本轮验收只跑构建后的测试与类型检查）。若实测明显变慢，按规范 §9.1 第 5 项既定方案改深路径引入单个图标（`@vicons/fluent/es/Save20Regular`）。                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ### 本轮终审修复后的补充取证
 
 终审在 `a8c3450` 上提出的问题已修复，下面是「括号匹配与当前行高亮可通过菜单开关」这条出口项的证据（其余修复的证据见 `final-fix-report.md`）：
 
-| 项 | 要求 | 实测（本轮） | 结论 |
-| -- | ---- | ------------ | ---- |
-| 视图勾选项（§6.1） | 行号／当前行高亮／括号匹配可经菜单开关 | 三条 `view.*` 命令各翻各的状态位，经 `Compartment` 热替换扩展：关「行号」后 `.cm-gutters` 从 DOM 消失、关「当前行高亮」后 `.cm-activeLine` 消失，再点恢复；全程同一个 `EditorView` 实例（不重建＝撤销历史与滚动位置不丢）；菜单项的 ✓ 与 `aria-checked` 同步翻转 | 通过（`src/shell/AppShell.test.ts`：jsdom + 真实 CodeMirror DOM；真实浏览器观感属人工项） |
-| 内嵌查找浮条（§3.2） | 不采用「编辑区内嵌浮条」 | `createBaseExtensions` 不再注册 `searchKeymap`：keymap facet 里没有 `Mod-f`／`F3`／`Mod-g`（既有 `Mod-Shift-d`／`Mod-j` 仍在，证明读到的是本项目的键位表） | 通过（Ctrl+F 回 §7.3 全局表，归 M4；`@codemirror/search` 依赖保留） |
-| 工具栏边界状态（§3.4） | 不可用操作置灰而非隐藏 | `file.open`／`file.save`／`search.find`／`search.replace`／`settings.open` 五个按钮带 `disabled` 且仍留在工具栏上；`file.new`／`edit.undo`／`edit.redo` 未置灰 | 通过（`src/shell/AppShell.test.ts`） |
+| 项                     | 要求                                   | 实测（本轮）                                                                                                                                                                                                                                                     | 结论                                                                                      |
+| ---------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 视图勾选项（§6.1）     | 行号／当前行高亮／括号匹配可经菜单开关 | 三条 `view.*` 命令各翻各的状态位，经 `Compartment` 热替换扩展：关「行号」后 `.cm-gutters` 从 DOM 消失、关「当前行高亮」后 `.cm-activeLine` 消失，再点恢复；全程同一个 `EditorView` 实例（不重建＝撤销历史与滚动位置不丢）；菜单项的 ✓ 与 `aria-checked` 同步翻转 | 通过（`src/shell/AppShell.test.ts`：jsdom + 真实 CodeMirror DOM；真实浏览器观感属人工项） |
+| 内嵌查找浮条（§3.2）   | 不采用「编辑区内嵌浮条」               | `createBaseExtensions` 不再注册 `searchKeymap`：keymap facet 里没有 `Mod-f`／`F3`／`Mod-g`（既有 `Mod-Shift-d`／`Mod-j` 仍在，证明读到的是本项目的键位表）                                                                                                       | 通过（Ctrl+F 回 §7.3 全局表，归 M4；`@codemirror/search` 依赖保留）                       |
+| 工具栏边界状态（§3.4） | 不可用操作置灰而非隐藏                 | `file.open`／`file.save`／`search.find`／`search.replace`／`settings.open` 五个按钮带 `disabled` 且仍留在工具栏上；`file.new`／`edit.undo`／`edit.redo` 未置灰                                                                                                   | 通过（`src/shell/AppShell.test.ts`）                                                      |
 
 ### 人工验收清单（自动化无法替代）
 
