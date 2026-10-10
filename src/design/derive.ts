@@ -62,6 +62,7 @@ export function tokensToEditorTheme(t: ThemeTokens): Record<string, Record<strin
       color: t.color.editorText,
       backgroundColor: t.color.bgSurface,
       fontSize: `${t.typography.editorFontSize}px`,
+      lineHeight: String(t.typography.editorLineHeight),
       fontFamily: t.typography.monoFont,
     },
     ".cm-content": { caretColor: t.color.editorCaret },

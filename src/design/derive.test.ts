@@ -86,6 +86,8 @@ describe("tokensToEditorTheme", () => {
     expect(theme["&"].color).toBe(DARK_TOKENS.color.editorText);
     expect(theme["&"].backgroundColor).toBe(DARK_TOKENS.color.bgSurface);
     expect(theme[".cm-gutters"].color).toBe(DARK_TOKENS.color.editorGutter);
+    // 令牌是样式唯一源：编辑器行高也必须由令牌驱动，而不是 CodeMirror 基座的 1.4
+    expect(theme["&"].lineHeight).toBe("1.45");
   });
 });
 

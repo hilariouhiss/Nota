@@ -3,10 +3,12 @@ import { searchKeymap } from "@codemirror/search";
 import { EditorState, type Extension } from "@codemirror/state";
 import {
   EditorView,
+  crosshairCursor,
   highlightActiveLine,
   highlightActiveLineGutter,
   keymap,
   lineNumbers,
+  rectangularSelection,
 } from "@codemirror/view";
 import { bracketMatching } from "@codemirror/language";
 
@@ -15,6 +17,7 @@ export interface BaseExtensionOptions {
   lineNumbers: boolean;
   activeLine?: boolean;
   bracketMatching?: boolean;
+  rectangularSelection?: boolean;
 }
 
 /**
@@ -32,6 +35,7 @@ export function createBaseExtensions(opts: BaseExtensionOptions): Extension[] {
   if (opts.lineNumbers) exts.push(lineNumbers(), highlightActiveLineGutter());
   if (opts.activeLine !== false) exts.push(highlightActiveLine());
   if (opts.bracketMatching !== false) exts.push(bracketMatching());
+  if (opts.rectangularSelection !== false) exts.push(rectangularSelection(), crosshairCursor());
   return exts;
 }
 

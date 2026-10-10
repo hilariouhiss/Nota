@@ -34,6 +34,17 @@ describe("基础编辑器扩展", () => {
     });
     expect(state.doc.toString()).toBe("x");
   });
+
+  it("矩形选区扩展已装配（FR-14 列编辑）", () => {
+    const exts = createBaseExtensions({ tabSize: 4, lineNumbers: true });
+    // Extension 是不透明值，这里断言装配数量随开关变化，确保列编辑确实被加进去
+    const without = createBaseExtensions({
+      tabSize: 4,
+      lineNumbers: true,
+      rectangularSelection: false,
+    });
+    expect(exts.length).toBe(without.length + 2);
+  });
 });
 
 describe("positionOf", () => {
