@@ -88,6 +88,12 @@ export function tokensToEditorTheme(t: ThemeTokens): Record<string, Record<strin
     ".cm-activeLine": {
       backgroundColor: `color-mix(in srgb, ${t.color.accentSoft} 45%, transparent)`,
     },
+    // 与上面的 `.cm-activeLine` 同源：行号槽里的当前行也要半透明、也要走令牌。
+    // 基座给的是不透明蓝（浅 #e2f2ff／深 #222227），列编辑时槽里会留下几格死色，
+    // 而且与令牌无关。槽底色由 `.cm-gutters` 的 bgSurface 打底，这里只叠一层。
+    ".cm-activeLineGutter": {
+      backgroundColor: `color-mix(in srgb, ${t.color.accentSoft} 45%, transparent)`,
+    },
     // 覆盖基座给的灰色 #d9d9d9；聚焦时基座那条特异性更高（#d7d4f0），必须用同样的选择器形状压过
     ".cm-selectionBackground": { backgroundColor: selectionBg },
     "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {

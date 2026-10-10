@@ -112,21 +112,31 @@ describe("tokensToEditorTheme", () => {
   });
 
   /**
-   * 当前行底色必须带 alpha。CodeMirror 把选区绘制层排在内容之下（图层 z-index: -1），
-   * 不透明的当前行底色会把本行的选区矩形整片盖掉——最后一条断言就是这条性质的守卫：
-   * 任何人把实现改回 `t.color.accentSoft`（不透明令牌）都必须让这里失败。
+   * 当前行底色必须带 alpha，正文与行号槽都一样。CodeMirror 把选区绘制层排在内容之下
+   * （图层 z-index: -1），不透明的当前行底色会把本行的选区矩形整片盖掉——最后一条断言
+   * 就是这条性质的守卫：任何人把实现改回 `t.color.accentSoft`（不透明令牌）都必须让这里失败。
+   * 行号槽（基座不透明蓝 #e2f2ff／#222227）是同一个坑，且那一格还得由令牌派生。
    */
   it.each([
     ["浅色", LIGHT_TOKENS, "#e7effb"],
     ["深色", DARK_TOKENS, "#25344a"],
-  ] as const)("%s主题：当前行底色半透明，不盖住下方的选区绘制层", (_name, tokens, soft) => {
-    const { backgroundColor } = tokensToEditorTheme(tokens)[".cm-activeLine"];
-    expect(backgroundColor).toBe(`color-mix(in srgb, ${soft} 45%, transparent)`);
-    expect(backgroundColor).toContain(`color-mix`);
-    expect(backgroundColor).toContain(soft);
-    expect(backgroundColor).toContain(`45%`);
-    expect(backgroundColor).not.toBe(tokens.color.accentSoft);
-  });
+  ] as const)(
+    "%s主题：当前行底色（正文与行号槽）半透明，不盖住下方的选区绘制层",
+    (_name, tokens, soft) => {
+      const { backgroundColor } = tokensToEditorTheme(tokens)[".cm-activeLine"];
+      expect(backgroundColor).toBe(`color-mix(in srgb, ${soft} 45%, transparent)`);
+      expect(backgroundColor).toContain(`color-mix`);
+      expect(backgroundColor).toContain(soft);
+      expect(backgroundColor).toContain(`45%`);
+      expect(backgroundColor).not.toBe(tokens.color.accentSoft);
+
+      const gutter = tokensToEditorTheme(tokens)[".cm-activeLineGutter"].backgroundColor;
+      expect(gutter).toBe(`color-mix(in srgb, ${soft} 45%, transparent)`);
+      expect(gutter).toContain(soft);
+      expect(gutter).toContain(`45%`);
+      expect(gutter).not.toBe(tokens.color.accentSoft);
+    },
+  );
 });
 
 describe("对比度（WCAG 2.1）", () => {
