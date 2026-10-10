@@ -5,6 +5,7 @@ import { useDocumentsStore } from "../stores/documents";
 import MenuBar from "./MenuBar.vue";
 import StatusBar from "./StatusBar.vue";
 import TabBar from "./TabBar.vue";
+import ToolBar from "./ToolBar.vue";
 
 const store = useDocumentsStore();
 const dockCollapsed = ref(true);
@@ -50,7 +51,10 @@ function onChange() {
       <!-- 本任务不接命令：run 事件留给 Task 18 的命令分发；dismiss 只负责 Esc 后把焦点还给编辑区（§7.2） -->
       <MenuBar @dismiss="editorRef?.focus()" />
     </div>
-    <div class="region" data-region="toolbar" />
+    <div class="region" data-region="toolbar">
+      <!-- run 事件留给 Task 18 的命令分发；本任务只做按钮与图标接入 -->
+      <ToolBar />
+    </div>
     <div class="region" data-region="tabs">
       <TabBar
         :tabs="store.tabs"
