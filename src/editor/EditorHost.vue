@@ -3,6 +3,7 @@ import { Compartment, EditorState, Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTokens } from "../design/apply";
+import { executeEditorCommand } from "./commands";
 import { createBaseExtensions, positionOf } from "./extensions";
 import { createEditorTheme } from "./theme";
 
@@ -74,7 +75,12 @@ watch([() => props.docId, () => props.doc], ([, next]) => {
 
 // R36：切标签前由 AppShell 拉取当前编辑区内容写回活动标签（不用每击键 emit 全文）
 // R38：focus 供菜单栏 Esc 后把焦点还给编辑区（§7.2）
-defineExpose({ getDoc: () => view?.state.doc.toString() ?? "", focus: () => view?.focus() });
+// §7.3：run 是「编辑器内表」命令的唯一入口，AppShell 判定命中后转发到这里
+defineExpose({
+  getDoc: () => view?.state.doc.toString() ?? "",
+  focus: () => view?.focus(),
+  run: (command: string) => executeEditorCommand(view, command),
+});
 
 onBeforeUnmount(() => {
   view?.destroy();

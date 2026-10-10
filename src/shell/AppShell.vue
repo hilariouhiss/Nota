@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import EditorHost from "../editor/EditorHost.vue";
+import { isEditorCommand } from "../editor/commands";
 import { useDocumentsStore } from "../stores/documents";
 import DockPanel from "./DockPanel.vue";
 import MenuBar from "./MenuBar.vue";
@@ -45,17 +46,61 @@ function onPosition(position: { line: number; column: number }) {
 function onChange() {
   if (store.activeId) store.setDirty(store.activeId, true);
 }
+
+// §7.3 的唯一命令分发点：MenuBar 与 ToolBar 的 run 事件同名，共用这一个处理函数。
+// 「编辑器内表」命中就转发给编辑区；file.open/save/saveAs/recent、search.*、view.*、encoding.*、
+// settings.*、help.*、app.exit、edit.cut/copy/paste 在 M1 静默不处理——它们分别归 M2（文件 I/O）、
+// M4（查找）、M5（设置/帮助/视图开关），这里既不写空实现也不弹提示。
+function onCommand(command: string) {
+  if (isEditorCommand(command)) {
+    editorRef.value?.run(command);
+    return;
+  }
+
+  if (command === "file.new") {
+    persistTab(store.activeId);
+    store.newDocument();
+    return;
+  }
+
+  if (command === "tab.close") {
+    persistTab(store.activeId);
+    if (store.activeId) store.closeDocument(store.activeId);
+    return;
+  }
+
+  if (command === "tab.closeAll") {
+    persistTab(store.activeId);
+    // 必须遍历 id 快照：关掉最后一个时 store 会自动新建「未命名 N」，
+    // 直接 while (store.tabs.length > 0) 会把新建的那个也一直关下去（死循环）
+    for (const id of store.tabs.map((t) => t.id)) store.closeDocument(id);
+  }
+}
+
+// §7.3「全局表」只接 M1 已有实现的键：Ctrl+N／Ctrl+W。Ctrl+O/S/F/H、Ctrl+,、F1、Alt+F4 尚无实现，
+// 接上去只会吞掉浏览器默认行为却不做事。Alt 与菜单内的方向键归 MenuBar 的监听，两张表的键位不重叠，
+// 所以这里是独立的一个 handler，不与 MenuBar 合并。
+function onGlobalKeydown(e: KeyboardEvent) {
+  if (!e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+  const key = e.key.toLowerCase();
+  const command = key === "n" ? "file.new" : key === "w" ? "tab.close" : null;
+  if (!command) return;
+  e.preventDefault();
+  onCommand(command);
+}
+
+onMounted(() => window.addEventListener("keydown", onGlobalKeydown));
+onUnmounted(() => window.removeEventListener("keydown", onGlobalKeydown));
 </script>
 
 <template>
   <div class="shell">
     <div class="region" data-region="menu">
-      <!-- 本任务不接命令：run 事件留给 Task 18 的命令分发；dismiss 只负责 Esc 后把焦点还给编辑区（§7.2） -->
-      <MenuBar @dismiss="editorRef?.focus()" />
+      <!-- onCommand 是唯一的命令分发点（§7.3）；dismiss 只负责 Esc 后把焦点还给编辑区（§7.2） -->
+      <MenuBar @run="onCommand" @dismiss="editorRef?.focus()" />
     </div>
     <div class="region" data-region="toolbar">
-      <!-- run 事件留给 Task 18 的命令分发；本任务只做按钮与图标接入 -->
-      <ToolBar />
+      <ToolBar @run="onCommand" />
     </div>
     <div class="region" data-region="tabs">
       <TabBar

@@ -7,6 +7,11 @@ import { describe, expect, it } from "vite-plus/test";
 import { nextTick } from "vue";
 import { useDocumentsStore } from "../stores/documents";
 import AppShell from "./AppShell.vue";
+import MenuBar from "./MenuBar.vue";
+
+// jsdom 没实现 Range.getClientRects。文档为空时 CodeMirror 量不出行宽，会塞一个 dummy 行量文字宽度，
+// 走的正是这个方法——抛出的未捕获异常会让测试进程以非 0 退出（真实浏览器里不存在这个缺口）。
+Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
 
 /** Pinia 必须在 mount 之前激活：AppShell 在 setup 里就取 store */
 async function mountShell() {
@@ -117,5 +122,127 @@ describe("AppShell", () => {
     const view = editorView(wrapper);
     expect(view.state.doc.toString()).toBe("hello");
     expect(undoDepth(view.state)).toBe(0);
+  });
+
+  it("菜单的 edit.* 命令转发到编辑区并真正生效（M1 出口：§7.3 分发路径）", async () => {
+    const { wrapper } = await mountShell();
+    editorView(wrapper).dispatch({ changes: { from: 0, insert: "abc" } });
+    await nextTick();
+
+    wrapper.findComponent(MenuBar).vm.$emit("run", "edit.undo");
+    await nextTick();
+
+    // 光有 emit 不算数：必须真的撤销掉刚才那次输入
+    expect(editorView(wrapper).state.doc.toString()).toBe("");
+  });
+
+  // M1 出口清单：「菜单的全部 edit.* 项在编辑区实际生效」。逐项跑一遍，防止某个 command 接到了
+  // 别的命令上（例如复制行接成 copyLineUp）——这种错位光读代码几乎看不出来
+  const editCases: Array<{ command: string; text: string; cursor?: number; expected: string }> = [
+    { command: "edit.undo", text: "abc", expected: "" },
+    { command: "edit.deleteLine", text: "a\nb", cursor: 0, expected: "b" },
+    { command: "edit.copyLine", text: "a", cursor: 0, expected: "a\na" },
+    { command: "edit.moveLineUp", text: "a\nb", cursor: 2, expected: "b\na" },
+    { command: "edit.moveLineDown", text: "a\nb", cursor: 0, expected: "b\na" },
+    { command: "edit.joinLines", text: "a\n  b", cursor: 0, expected: "a b" },
+  ];
+
+  for (const c of editCases) {
+    it(`${c.command} 在编辑区生效（M1 出口：全部 edit.* 项）`, async () => {
+      const { wrapper } = await mountShell();
+      const view = editorView(wrapper);
+      view.dispatch({ changes: { from: 0, insert: c.text } });
+      if (c.cursor !== undefined) view.dispatch({ selection: { anchor: c.cursor } });
+      await nextTick();
+
+      wrapper.findComponent(MenuBar).vm.$emit("run", c.command);
+      await nextTick();
+
+      expect(editorView(wrapper).state.doc.toString()).toBe(c.expected);
+    });
+  }
+
+  it("edit.selectAll 选中整篇（M1 出口：全部 edit.* 项）", async () => {
+    const { wrapper } = await mountShell();
+    editorView(wrapper).dispatch({ changes: { from: 0, insert: "abc" } });
+    await nextTick();
+
+    wrapper.findComponent(MenuBar).vm.$emit("run", "edit.selectAll");
+    await nextTick();
+
+    const { from, to } = editorView(wrapper).state.selection.main;
+    expect([from, to]).toEqual([0, 3]);
+  });
+
+  it("edit.redo 重做（M1 出口：全部 edit.* 项）", async () => {
+    const { wrapper } = await mountShell();
+    editorView(wrapper).dispatch({ changes: { from: 0, insert: "abc" } });
+    await nextTick();
+
+    wrapper.findComponent(MenuBar).vm.$emit("run", "edit.undo");
+    await nextTick();
+    wrapper.findComponent(MenuBar).vm.$emit("run", "edit.redo");
+    await nextTick();
+
+    expect(editorView(wrapper).state.doc.toString()).toBe("abc");
+  });
+
+  it("工具栏按钮走同一条分发路径（file.new 新建标签）", async () => {
+    const { wrapper, store } = await mountShell();
+    await wrapper.find("[data-action='file.new']").trigger("click");
+    await nextTick();
+    expect(store.tabs).toHaveLength(2);
+    expect(store.activeTab?.title).toBe("未命名 2");
+  });
+
+  it("全局键 Ctrl+N 新建、Ctrl+W 关闭当前标签（§7.3 全局表）", async () => {
+    const { store } = await mountShell();
+
+    const ctrlN = new KeyboardEvent("keydown", { key: "n", ctrlKey: true, cancelable: true });
+    window.dispatchEvent(ctrlN);
+    await nextTick();
+    expect(ctrlN.defaultPrevented).toBe(true);
+    expect(store.tabs).toHaveLength(2);
+
+    const ctrlW = new KeyboardEvent("keydown", { key: "w", ctrlKey: true, cancelable: true });
+    window.dispatchEvent(ctrlW);
+    await nextTick();
+    expect(ctrlW.defaultPrevented).toBe(true);
+    expect(store.tabs).toHaveLength(1);
+    expect(store.activeTab?.title).toBe("未命名 1");
+  });
+
+  it("没有 M1 实现的全局键不被吞掉（Ctrl+O 留给 M2）", async () => {
+    const { store } = await mountShell();
+    const ctrlO = new KeyboardEvent("keydown", { key: "o", ctrlKey: true, cancelable: true });
+    window.dispatchEvent(ctrlO);
+    await nextTick();
+    expect(ctrlO.defaultPrevented).toBe(false);
+    expect(store.tabs).toHaveLength(1);
+  });
+
+  it("tab.closeAll 关掉全部标签，只剩自动新建的那一个（不会无休止地关下去）", async () => {
+    const { wrapper, store } = await mountShell();
+    store.newDocument();
+    store.newDocument();
+    await nextTick();
+
+    wrapper.findComponent(MenuBar).vm.$emit("run", "tab.closeAll");
+    await nextTick();
+
+    expect(store.tabs).toHaveLength(1);
+    expect(store.tabs[0].content).toBe("");
+  });
+
+  it("M1 未实现的命令静默跳过，不报错也不改状态（file.save 归 M2）", async () => {
+    const { wrapper, store } = await mountShell();
+    editorView(wrapper).dispatch({ changes: { from: 0, insert: "abc" } });
+    await nextTick();
+
+    wrapper.findComponent(MenuBar).vm.$emit("run", "file.save");
+    await nextTick();
+
+    expect(store.tabs).toHaveLength(1);
+    expect(editorView(wrapper).state.doc.toString()).toBe("abc");
   });
 });
