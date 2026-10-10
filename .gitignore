@@ -33,3 +33,6 @@ coverage/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Superpowers 可视化原型产物
+.superpowers/
