@@ -6,8 +6,10 @@ import { useTokens } from "../design/apply";
 import { createBaseExtensions, positionOf } from "./extensions";
 import { createEditorTheme } from "./theme";
 
-const props = withDefaults(defineProps<{ doc?: string; lineNumbers?: boolean }>(), {
+const props = withDefaults(defineProps<{ doc?: string; docId?: string; lineNumbers?: boolean }>(), {
   doc: "",
+  /** R36：文档身份。内容可能恰好相同（两个空标签），只有它也参与 watch 才认得出「换了一篇」 */
+  docId: "",
   lineNumbers: true,
 });
 
@@ -58,18 +60,20 @@ watch(
   () => view?.dispatch({ effects: themeCompartment.reconfigure(createEditorTheme(tokens.value)) }),
 );
 
-// 行数/状态由 ViewPlugin 上报，此处只处理显式传入的文档替换
-watch(
-  () => props.doc,
-  (next) => {
-    if (!view || view.state.doc.toString() === next) return;
-    view.dispatch({
-      changes: { from: 0, to: view.state.doc.length, insert: next },
-      // R35：替换不进撤销历史，否则切到 B 标签后 Ctrl+Z 会撤出 A 标签的内容
-      annotations: Transaction.addToHistory.of(false),
-    });
-  },
-);
+// 行数/状态由 ViewPlugin 上报，此处只处理显式传入的文档替换。
+// R36：切标签改的是文档身份，内容字符串可能不变（两篇都空，或编辑区里的文本还没写回），
+// 只比较 doc 会漏掉刷新，编辑区就会留下上一个标签的文本
+watch([() => props.docId, () => props.doc], ([, next]) => {
+  if (!view || view.state.doc.toString() === next) return;
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: next },
+    // R35：替换不进撤销历史，否则切到 B 标签后 Ctrl+Z 会撤出 A 标签的内容
+    annotations: Transaction.addToHistory.of(false),
+  });
+});
+
+// R36：切标签前由 AppShell 拉取当前编辑区内容写回活动标签（不用每击键 emit 全文）
+defineExpose({ getDoc: () => view?.state.doc.toString() ?? "" });
 
 onBeforeUnmount(() => {
   view?.destroy();

@@ -75,6 +75,22 @@ describe("AppShell", () => {
     expect(store.activeTab?.dirty).toBe(false);
   });
 
+  it("切换标签时把编辑区内容写回上一个标签（R36）", async () => {
+    const { wrapper, store } = await mountShell();
+    // 此刻只有编辑区里有文本，store 的 content 仍是 ""——写回之前这就是「未落盘」状态
+    editorView(wrapper).dispatch({ changes: { from: 0, insert: "第一个标签的内容" } });
+    await nextTick();
+
+    store.newDocument(); // 直接建新标签，不经 TabBar：切换点不能只挂在 TabBar 的 select/close 上
+    await nextTick();
+    expect(editorView(wrapper).state.doc.toString()).toBe("");
+
+    await wrapper.findAll(".tab")[0].trigger("click"); // 切回第一个标签
+    await nextTick();
+    expect(store.tabs[0].content).toBe("第一个标签的内容");
+    expect(editorView(wrapper).state.doc.toString()).toBe("第一个标签的内容");
+  });
+
   it("切换文档的替换不进撤销历史（R35：Ctrl+Z 不会撤出上一个文档的内容）", async () => {
     const { wrapper, store } = await mountShell();
     const first = store.tabs[0];

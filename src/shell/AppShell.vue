@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import EditorHost from "../editor/EditorHost.vue";
 import { useDocumentsStore } from "../stores/documents";
 import StatusBar from "./StatusBar.vue";
@@ -14,6 +14,24 @@ const column = ref(1);
 onMounted(() => {
   if (store.tabs.length === 0) store.newDocument();
 });
+
+const editorRef = ref<InstanceType<typeof EditorHost> | null>(null);
+
+/** 切走之前把编辑区内容写回即将离开的标签（R36）：否则切回来后看到的还是上一个标签的文本 */
+function persistTab(id: string | null) {
+  const tab = store.tabs.find((t) => t.id === id);
+  if (tab) tab.content = editorRef.value?.getDoc() ?? tab.content;
+}
+
+// 挂在 activeId 这个唯一的切换点上，而不是 TabBar 的 select/close：新建标签、关闭最后一个标签
+// 后的自动新建、将来的菜单入口/会话恢复都会改 activeId，漏掉任何一条都会丢掉那篇文档的编辑。
+// flush: "sync" 让写回发生在切换的那一刻（编辑区此刻还显示着要离开的那篇），而不是等下一帧：
+// 同一 tick 里若有别的写入路径改了 content（M2 读文件/还原），等一帧就会把它盖掉
+watch(
+  () => store.activeId,
+  (_next, prev) => persistTab(prev),
+  { flush: "sync" },
+);
 
 function onPosition(position: { line: number; column: number }) {
   line.value = position.line;
@@ -38,7 +56,13 @@ function onChange() {
       />
     </div>
     <div class="region" data-region="editor">
-      <EditorHost :doc="store.activeTab?.content ?? ''" @position="onPosition" @change="onChange" />
+      <EditorHost
+        ref="editorRef"
+        :doc="store.activeTab?.content ?? ''"
+        :doc-id="store.activeId ?? ''"
+        @position="onPosition"
+        @change="onChange"
+      />
     </div>
     <div class="region" data-region="dock" :data-collapsed="String(dockCollapsed)" />
     <div class="region" data-region="status">
