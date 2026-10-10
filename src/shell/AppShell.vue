@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import EditorHost from "../editor/EditorHost.vue";
 import StatusBar from "./StatusBar.vue";
 import TabBar from "./TabBar.vue";
 
@@ -17,7 +18,7 @@ const dockCollapsed = ref(true);
         active-id="untitled-1"
       />
     </div>
-    <div class="region" data-region="editor"><slot /></div>
+    <div class="region" data-region="editor"><EditorHost /></div>
     <div class="region" data-region="dock" :data-collapsed="String(dockCollapsed)" />
     <div class="region" data-region="status">
       <!-- 占位值：真实行列号由 Task 8（EditorHost 上报）/ Task 11（AppShell 接线）补上。
