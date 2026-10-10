@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "scribapad",
-        "width": 800,
-        "height": 600
+        "title": "ScribaPad",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 640,
+        "minHeight": 400,
+        "backgroundColor": "#ffffff"
       }
     ],
     "security": {
