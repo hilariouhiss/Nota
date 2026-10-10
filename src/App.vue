@@ -13,4 +13,12 @@ html,
 body {
   margin: 0;
 }
+
+/* 区域高度取自密度令牌（§4.3），而每个区域各带 1px 分隔线：
+   默认的 content-box 会把边框加在 height 之外，五个区域各多 1px */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
 </style>
