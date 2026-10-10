@@ -14,11 +14,53 @@ describe("tokensToCssVars", () => {
     expect(vars["--sp-line-height-editor"]).toBe("1.45");
   });
 
-  it("每个颜色令牌都有对应的 CSS 变量", () => {
+  /**
+   * 变量名逐字抄自规范 §4.2/§4.3/§4.4，刻意不从令牌键推导——用实现同一套规则
+   * 推导出的期望值只能与实现一致，永远不可能失败（派生出 `--sp-bg-tab-strip`、
+   * 而计划 CSS 四处读的 `--sp-bg-tabstrip` 拿不到值，就是这么溜过去的）。
+   */
+  const DOCUMENTED_VARS = [
+    // §4.2 颜色
+    "--sp-bg-chrome",
+    "--sp-bg-tabstrip",
+    "--sp-bg-surface",
+    "--sp-bg-status",
+    "--sp-bg-hover",
+    "--sp-text",
+    "--sp-text-dim",
+    "--sp-text-disabled",
+    "--sp-border",
+    "--sp-accent",
+    "--sp-accent-soft",
+    "--sp-on-accent",
+    "--sp-focus-ring",
+    "--sp-editor-text",
+    "--sp-editor-gutter",
+    "--sp-editor-caret",
+    // §4.3 密度
+    "--sp-menu-h",
+    "--sp-toolbar-h",
+    "--sp-tab-h",
+    "--sp-status-h",
+    "--sp-dock-h",
+    "--sp-control-h",
+    "--sp-radius",
+    "--sp-pad",
+    "--sp-icon",
+    // §4.4 字体
+    "--sp-font-ui",
+    "--sp-font-size-ui",
+    "--sp-font-size-status",
+    "--sp-font-mono",
+    "--sp-font-size-editor",
+    "--sp-line-height-editor",
+    "--sp-tab-size",
+  ];
+
+  it("规范文档化的每个变量名都由令牌产出且非空", () => {
     const vars = tokensToCssVars(LIGHT_TOKENS);
-    for (const key of Object.keys(LIGHT_TOKENS.color)) {
-      const varName = "--sp-" + key.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
-      expect(vars[varName], `缺少 ${varName}`).toBeTruthy();
+    for (const name of DOCUMENTED_VARS) {
+      expect(vars[name], `缺少 ${name}`).toBeTruthy();
     }
   });
 });
@@ -52,7 +94,7 @@ describe("对比度（WCAG 2.1）", () => {
     ["编辑器正文/编辑区", "editorText", "bgSurface", 4.5],
     ["界面正文/菜单栏", "text", "bgChrome", 4.5],
     ["次要文字/状态栏", "textDim", "bgStatus", 4.5],
-    ["次要文字/标签栏", "textDim", "bgTabStrip", 4.5],
+    ["次要文字/标签栏", "textDim", "bgTabstrip", 4.5],
     ["强调色/菜单栏", "accent", "bgChrome", 3],
     ["强调色底/on-accent", "onAccent", "accent", 4.5],
   ];

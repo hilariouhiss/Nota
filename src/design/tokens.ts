@@ -9,7 +9,8 @@ export interface ThemeTokens {
   name: "light" | "dark";
   color: {
     bgChrome: string;
-    bgTabStrip: string;
+    /** 规范 §4.2 文档化名为 --sp-bg-tabstrip；此处拼写必须让 kebab 结果与之逐字一致 */
+    bgTabstrip: string;
     bgSurface: string;
     bgStatus: string;
     bgHover: string;
@@ -68,7 +69,7 @@ export const LIGHT_TOKENS: ThemeTokens = {
   name: "light",
   color: {
     bgChrome: "#f3f3f3",
-    bgTabStrip: "#e9e9e9",
+    bgTabstrip: "#e9e9e9",
     bgSurface: "#ffffff",
     bgStatus: "#eeeeee",
     bgHover: "#e0e0e0",
@@ -100,7 +101,7 @@ export const DARK_TOKENS: ThemeTokens = {
   name: "dark",
   color: {
     bgChrome: "#2c2c2c",
-    bgTabStrip: "#242424",
+    bgTabstrip: "#242424",
     bgSurface: "#1c1c1c",
     bgStatus: "#2c2c2c",
     bgHover: "#3b3b3b",

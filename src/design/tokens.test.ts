@@ -6,7 +6,7 @@ const HEX = /^#[0-9a-f]{6}$/;
 /** 这些键在两套主题里都必须存在——漏一个就会渲染出 undefined */
 const REQUIRED_COLOR_KEYS: (keyof ThemeTokens["color"])[] = [
   "bgChrome",
-  "bgTabStrip",
+  "bgTabstrip",
   "bgSurface",
   "bgStatus",
   "bgHover",
