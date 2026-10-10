@@ -5,6 +5,12 @@ import { type MenuItem, type TopLevelMenu, V1_0_TOP_LEVEL } from "../menu/model"
 /** V1.0 只渲染本期菜单，预留项不在界面上出现 */
 const menus = V1_0_TOP_LEVEL;
 
+/**
+ * 当前处于勾选态的命令（§6.1 把行号／当前行高亮／括号匹配标为勾选项）。
+ * 状态由 AppShell 持有，这里只负责画出来：命中的项画 ✓ 并给 aria-checked。
+ */
+const props = withDefaults(defineProps<{ checked?: string[] }>(), { checked: () => [] });
+
 const bar = ref<HTMLElement | null>(null);
 const openIndex = ref<number | null>(null);
 /** 漫游 tabindex：菜单栏整条只是一个 Tab 站，落点是哪一项由它决定（设计规范 §7.2） */
@@ -12,6 +18,9 @@ const focusIndex = ref(0);
 
 /** 下拉同样只渲染本期项：设计规范 §6.6 要求新增菜单项在既有容器内完成，V1.0 不预先显示它们 */
 const itemsOf = (menu: TopLevelMenu) => menu.items.filter((i) => i.version === "V1.0");
+
+/** 勾选项（§6.1）：带 command 且落在 AppShell 传来的勾选集合里 */
+const isChecked = (item: MenuItem) => !!item.command && props.checked.includes(item.command);
 
 const emit = defineEmits<{ run: [command: string]; dismiss: [] }>();
 
@@ -132,8 +141,15 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
       <ul v-if="openIndex === i" class="dropdown" role="menu">
         <template v-for="(item, j) in itemsOf(menu)" :key="j">
           <li v-if="item.separator" class="sep" role="separator" @click.stop />
-          <li v-else class="item" role="menuitem" tabindex="-1" @click.stop="run(item)">
-            <span>{{ item.label }}</span>
+          <li
+            v-else
+            class="item"
+            role="menuitem"
+            tabindex="-1"
+            :aria-checked="isChecked(item) ? 'true' : undefined"
+            @click.stop="run(item)"
+          >
+            <span> <span v-if="isChecked(item)" class="check">✓</span>{{ item.label }} </span>
             <span v-if="item.accelerator" class="accel">{{ item.accelerator }}</span>
           </li>
         </template>
@@ -196,6 +212,10 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
 .accel {
   color: var(--sp-text-dim);
   font-size: var(--sp-font-size-status);
+}
+/* §6.1 勾选项的 ✓。紧凑字号下用右边距，不靠模板里的空白字符（会被 Vue 编译器吃掉） */
+.check {
+  margin-right: 4px;
 }
 .sep {
   height: 1px;

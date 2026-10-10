@@ -1,4 +1,5 @@
 import { EditorSelection, EditorState } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
 import { describe, expect, it } from "vite-plus/test";
 import { createBaseExtensions, positionOf } from "./extensions";
 
@@ -44,6 +45,21 @@ describe("基础编辑器扩展", () => {
       rectangularSelection: false,
     });
     expect(exts.length).toBe(without.length + 2);
+  });
+
+  it("不注册 CodeMirror 内嵌查找面板的键位（§3.2 否决内嵌浮条；Ctrl+F/F3/Ctrl+G 归 §7.3 全局表，M4 实现）", () => {
+    // 直接读 keymap facet 的绑定集合，而不是断言「DOM 里没有 .cm-search」：
+    // 后者要先把面板打开才有意义，等于用行为去猜实现。
+    const keys = stateWith("")
+      .facet(keymap)
+      .flat()
+      .map((b) => b.key);
+    // 先证明确实读到了本项目的键位表，否则下面的 not.toContain 在空集合上恒真
+    expect(keys).toContain("Mod-Shift-d");
+    expect(keys).toContain("Mod-j");
+    expect(keys).not.toContain("Mod-f");
+    expect(keys).not.toContain("F3");
+    expect(keys).not.toContain("Mod-g");
   });
 
   it("开启多选区：矩形选区的多区间不会被折叠成单区间（FR-14 列编辑生效的前提）", () => {

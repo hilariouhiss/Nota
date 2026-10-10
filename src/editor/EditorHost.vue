@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Compartment, EditorState, Transaction } from "@codemirror/state";
-import { EditorView, crosshairCursor, rectangularSelection } from "@codemirror/view";
+import { bracketMatching } from "@codemirror/language";
+import {
+  EditorView,
+  crosshairCursor,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  lineNumbers,
+  rectangularSelection,
+} from "@codemirror/view";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTokens } from "../design/apply";
 import { executeEditorCommand } from "./commands";
@@ -11,7 +19,12 @@ const props = withDefaults(
   defineProps<{
     doc?: string;
     docId?: string;
+    /** §6.1 勾选项：行号（FR-20） */
     lineNumbers?: boolean;
+    /** §6.1 勾选项：当前行高亮（FR-19） */
+    activeLine?: boolean;
+    /** §6.1 勾选项：括号匹配（FR-18） */
+    bracketMatching?: boolean;
     /** 列选择模式（菜单 edit.columnMode）：开启后不按 Alt 也能拖出矩形选区（FR-14） */
     columnMode?: boolean;
   }>(),
@@ -20,6 +33,8 @@ const props = withDefaults(
     /** R36：文档身份。内容可能恰好相同（两个空标签），只有它也参与 watch 才认得出「换了一篇」 */
     docId: "",
     lineNumbers: true,
+    activeLine: true,
+    bracketMatching: true,
     columnMode: false,
   },
 );
@@ -33,7 +48,19 @@ const emit = defineEmits<{
 const host = ref<HTMLDivElement | null>(null);
 const { tokens } = useTokens();
 const themeCompartment = new Compartment();
+/** §6.1 三个勾选项（行号／当前行高亮／括号匹配）共用这一个槽位：同一处装配、同一处热替换 */
+const viewCompartment = new Compartment();
 let view: EditorView | null = null;
+
+/**
+ * 视图勾选项 → 扩展。`createBaseExtensions` 那边一律传 false：同一组扩展只留一个装配来源，
+ * 否则「关掉行号」会被基座重新加回来。三个开关各自独立，互不牵连。
+ */
+const buildViewExtensions = () => [
+  ...(props.lineNumbers ? [lineNumbers(), highlightActiveLineGutter()] : []),
+  ...(props.activeLine ? [highlightActiveLine()] : []),
+  ...(props.bracketMatching ? [bracketMatching()] : []),
+];
 
 onMounted(() => {
   if (!host.value) return;
@@ -44,7 +71,10 @@ onMounted(() => {
       extensions: [
         ...createBaseExtensions({
           tabSize: tokens.value.typography.tabSize,
-          lineNumbers: props.lineNumbers,
+          // 三个视图开关由 viewCompartment 负责装配（见 buildViewExtensions）
+          lineNumbers: false,
+          activeLine: false,
+          bracketMatching: false,
           // 矩形选区改由这里单独装配：它要读 columnMode 这个 prop
           rectangularSelection: false,
         }),
@@ -52,6 +82,7 @@ onMounted(() => {
         // eventFilter 在事件触发时读 props，而 props 是响应式的，所以不需要 Compartment 热替换
         rectangularSelection({ eventFilter: (e) => props.columnMode === true || e.altKey }),
         crosshairCursor(),
+        viewCompartment.of(buildViewExtensions()),
         themeCompartment.of(createEditorTheme(tokens.value)),
         EditorView.updateListener.of((update) => {
           if (update.selectionSet || update.docChanged) emit("position", positionOf(update.state));
@@ -75,6 +106,11 @@ onMounted(() => {
 watch(
   () => tokens.value.name,
   () => view?.dispatch({ effects: themeCompartment.reconfigure(createEditorTheme(tokens.value)) }),
+);
+
+// 三个视图勾选项同理走 Compartment 热替换（§4.1：不重建 view，撤销历史与滚动位置都留着）
+watch([() => props.lineNumbers, () => props.activeLine, () => props.bracketMatching], () =>
+  view?.dispatch({ effects: viewCompartment.reconfigure(buildViewExtensions()) }),
 );
 
 // 行数/状态由 ViewPlugin 上报，此处只处理显式传入的文档替换。

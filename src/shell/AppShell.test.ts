@@ -51,6 +51,28 @@ function stubExecCommand(enabled: boolean) {
   };
 }
 
+/**
+ * 「视图」下拉里的某一项。视图开关只有菜单这一个入口（§6.1 勾选项），所以走真实的点击路径。
+ * 已经开着就不重复点：顶层项的 toggle 语义是「再点一次就关」，重复调用会拿到空集合。
+ */
+async function viewItem(wrapper: VueWrapper, label: string) {
+  if (!wrapper.find(".dropdown").exists()) {
+    const top = wrapper.findAll(".top").find((n) => n.text().startsWith("视图"));
+    if (!top) throw new Error("菜单栏里没有「视图」");
+    await top.trigger("click");
+    await nextTick();
+  }
+  const item = wrapper.findAll(".item").find((n) => n.text().includes(label));
+  if (!item) throw new Error(`视图菜单里没有「${label}」`);
+  return item;
+}
+
+/** 点一下视图菜单项（点完下拉关闭） */
+async function toggleView(wrapper: VueWrapper, label: string) {
+  await (await viewItem(wrapper, label)).trigger("click");
+  await nextTick();
+}
+
 describe("AppShell", () => {
   it("渲染六个区域，且顺序符合设计规范 §3.1", async () => {
     const { wrapper } = await mountShell();
@@ -239,6 +261,92 @@ describe("AppShell", () => {
       c.check?.({ wrapper, view: editorView(wrapper) });
     });
   }
+
+  // M1 出口：「括号匹配与当前行高亮可通过菜单开关」（§6.1 三个勾选项）。
+  // 断言落在真实 DOM 与组件 prop 上：开关没接线时，这三条各自失败。
+  it("菜单「行号」开关装卸行号栏，且不重建编辑区（FR-20）", async () => {
+    const { wrapper } = await mountShell();
+    expect(wrapper.find(".cm-gutters").exists()).toBe(true);
+    const view = editorView(wrapper);
+
+    await toggleView(wrapper, "行号");
+    expect(wrapper.find(".cm-gutters").exists()).toBe(false);
+    // 同一个 EditorView 实例：重建会丢撤销历史与滚动位置（§4.1），Compartment 热替换才不会
+    expect(editorView(wrapper)).toBe(view);
+
+    await toggleView(wrapper, "行号");
+    expect(wrapper.find(".cm-gutters").exists()).toBe(true);
+  });
+
+  it("菜单「当前行高亮」关闭后 .cm-activeLine 消失（FR-19）", async () => {
+    const { wrapper } = await mountShell();
+    expect(wrapper.find(".cm-activeLine").exists()).toBe(true);
+
+    await toggleView(wrapper, "当前行高亮");
+    expect(wrapper.find(".cm-activeLine").exists()).toBe(false);
+
+    await toggleView(wrapper, "当前行高亮");
+    expect(wrapper.find(".cm-activeLine").exists()).toBe(true);
+  });
+
+  it("三个 view.* 开关各自翻转 EditorHost 的对应 prop（FR-18/19/20）", async () => {
+    const cases: Array<[string, "lineNumbers" | "activeLine" | "bracketMatching"]> = [
+      ["行号", "lineNumbers"],
+      ["当前行高亮", "activeLine"],
+      ["括号匹配", "bracketMatching"],
+    ];
+    for (const [label, prop] of cases) {
+      const { wrapper } = await mountShell();
+      expect(wrapper.findComponent(EditorHost).props(prop)).toBe(true);
+      await toggleView(wrapper, label);
+      expect(wrapper.findComponent(EditorHost).props(prop)).toBe(false);
+    }
+  });
+
+  it("勾选项的 ✓ 与 aria-checked 跟随开关状态（§6.1；未勾选的项两者都不出现）", async () => {
+    const labels = ["行号", "当前行高亮", "括号匹配"];
+    const { wrapper } = await mountShell();
+
+    for (const label of labels) {
+      expect((await viewItem(wrapper, label)).attributes("aria-checked")).toBe("true");
+      expect((await viewItem(wrapper, label)).text()).toContain("✓");
+    }
+    // 未实现的「自动缩进」不在勾选集合里：✓ 不是给每个菜单项都加的装饰
+    expect((await viewItem(wrapper, "自动缩进")).attributes("aria-checked")).toBeUndefined();
+    expect((await viewItem(wrapper, "自动缩进")).text()).not.toContain("✓");
+
+    // 逐个关掉、每关一个就把三项都查一遍：三条开关各有独立分支，
+    // 共用一个状态位（或漏掉某个分支）都会让「已关的」与「还开着的」对不上。
+    for (const [i, label] of labels.entries()) {
+      await toggleView(wrapper, label);
+      for (const other of labels) {
+        const off = labels.indexOf(other) <= i;
+        const checked = (await viewItem(wrapper, other)).attributes("aria-checked");
+        expect(checked).toBe(off ? undefined : "true");
+      }
+      expect((await viewItem(wrapper, label)).text()).not.toContain("✓");
+    }
+  });
+
+  it("工具栏上 M1 没实现的命令置灰而非隐藏（§3.4）", async () => {
+    const { wrapper } = await mountShell();
+    const btn = (command: string) => wrapper.find(`[data-action='${command}']`);
+
+    for (const command of [
+      "file.open",
+      "file.save",
+      "search.find",
+      "search.replace",
+      "settings.open",
+    ]) {
+      expect(btn(command).exists()).toBe(true); // 置灰而不是从工具栏消失，避免按钮位置跳动
+      expect(btn(command).attributes("disabled")).toBeDefined();
+    }
+    // 反向：已实现的三条不得被误伤
+    for (const command of ["file.new", "edit.undo", "edit.redo"]) {
+      expect(btn(command).attributes("disabled")).toBeUndefined();
+    }
+  });
 
   it("工具栏按钮走同一条分发路径（file.new 新建标签）", async () => {
     const { wrapper, store } = await mountShell();

@@ -5,7 +5,6 @@ import {
   historyKeymap,
   indentWithTab,
 } from "@codemirror/commands";
-import { searchKeymap } from "@codemirror/search";
 import { EditorState, type Extension } from "@codemirror/state";
 import {
   EditorView,
@@ -41,7 +40,9 @@ export function createBaseExtensions(opts: BaseExtensionOptions): Extension[] {
     keymap.of([
       ...defaultKeymap,
       ...historyKeymap,
-      ...searchKeymap,
+      // 刻意不注册 @codemirror/search 的 searchKeymap：它把 Ctrl+F/F3/Ctrl+G 接到 CodeMirror
+      // 自带的英文内嵌浮条上，而规范 §3.2 明确不采用「编辑区内嵌浮条」，Ctrl+F 属 §7.3 全局表
+      // （打开底部面板的查找框，归 M4）。依赖保留，M4 直接用它的命令函数，只是不走这套键位。
       indentWithTab,
       // §7.3 编辑器内表里，defaultKeymap/historyKeymap 没有的两条（Mod = Windows 的 Ctrl）：
       // 复制行、合并行。放数组末尾：前面的标准键位优先，冲突时仍按 CodeMirror 的默认行为走

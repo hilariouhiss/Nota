@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import EditorHost from "../editor/EditorHost.vue";
 import { isEditorCommand } from "../editor/commands";
 import { useDocumentsStore } from "../stores/documents";
@@ -9,6 +9,20 @@ import StatusBar from "./StatusBar.vue";
 import TabBar from "./TabBar.vue";
 import ToolBar from "./ToolBar.vue";
 
+/**
+ * §3.4：不可用操作置灰而非隐藏。这五个命令的实现分别归 M2（file.open/save）、
+ * M4（search.find/replace）、M5（settings.open）——M1 里点它们没有任何反应，
+ * 不做视觉区分就等于骗用户「按钮是活的」。file.saveAs/recent 等只在菜单里，
+ * 不在工具栏上，故不列在这里。
+ */
+const UNIMPLEMENTED_COMMANDS = [
+  "file.open",
+  "file.save",
+  "search.find",
+  "search.replace",
+  "settings.open",
+];
+
 const store = useDocumentsStore();
 const dockCollapsed = ref(true);
 const dockTab = ref("find-replace");
@@ -16,6 +30,17 @@ const line = ref(1);
 const column = ref(1);
 /** 列选择模式（菜单 edit.columnMode 开关，FR-14）：编辑区只按 prop 决定矩形选区是否放行 */
 const columnMode = ref(false);
+/** §6.1 三个勾选项：行号（FR-20）／当前行高亮（FR-19）／括号匹配（FR-18），状态由 AppShell 持有 */
+const lineNumbers = ref(true);
+const activeLine = ref(true);
+const bracketMatching = ref(true);
+
+/** 当前处于勾选态的视图命令，交给 MenuBar 画 ✓ 与 aria-checked */
+const checkedViewCommands = computed(() => [
+  ...(lineNumbers.value ? ["view.lineNumbers"] : []),
+  ...(activeLine.value ? ["view.activeLine"] : []),
+  ...(bracketMatching.value ? ["view.bracketMatching"] : []),
+]);
 
 // §3.4：启动无可恢复文件时直接创建「未命名 1」空标签，不做欢迎页
 onMounted(() => {
@@ -51,13 +76,28 @@ function onChange() {
 
 // §7.3 的唯一命令分发点：MenuBar 与 ToolBar 的 run 事件同名，共用这一个处理函数。
 // 「编辑器内表」命中就转发给编辑区（含 FR-12 的剪切/复制/粘贴，走 CodeMirror 的剪贴板路径）；
-// edit.columnMode 是模式开关，状态由这里持有，编辑区只按 prop 决定矩形选区是否放行。
-// file.open/save/saveAs/recent、search.*、view.*、encoding.*、settings.*、help.*、app.exit
-// 在 M1 静默不处理——它们分别归 M2（文件 I/O）、M4（查找）、M5（设置/帮助/视图开关），
+// edit.columnMode 与 view.lineNumbers/activeLine/bracketMatching 是开关，状态由这里持有，
+// 编辑区只按 prop 装卸扩展。
+// file.open/save/saveAs/recent、search.*、encoding.*、settings.*、help.*、app.exit、view.theme/font/autoIndent
+// 在 M1 静默不处理——它们分别归 M2（文件 I/O）、M4（查找）、M5（设置/帮助/其余视图项），
 // 这里既不写空实现也不弹提示。
 function onCommand(command: string) {
   if (command === "edit.columnMode") {
     columnMode.value = !columnMode.value;
+    return;
+  }
+
+  // §6.1 三个勾选项：各翻各的状态位，三条独立分支（共用一个状态位就会互相串台）
+  if (command === "view.lineNumbers") {
+    lineNumbers.value = !lineNumbers.value;
+    return;
+  }
+  if (command === "view.activeLine") {
+    activeLine.value = !activeLine.value;
+    return;
+  }
+  if (command === "view.bracketMatching") {
+    bracketMatching.value = !bracketMatching.value;
     return;
   }
 
@@ -108,10 +148,10 @@ onUnmounted(() => window.removeEventListener("keydown", onGlobalKeydown));
   <div class="shell">
     <div class="region" data-region="menu">
       <!-- onCommand 是唯一的命令分发点（§7.3）；dismiss 只负责 Esc 后把焦点还给编辑区（§7.2） -->
-      <MenuBar @run="onCommand" @dismiss="editorRef?.focus()" />
+      <MenuBar :checked="checkedViewCommands" @run="onCommand" @dismiss="editorRef?.focus()" />
     </div>
     <div class="region" data-region="toolbar">
-      <ToolBar @run="onCommand" />
+      <ToolBar :disabled="UNIMPLEMENTED_COMMANDS" @run="onCommand" />
     </div>
     <div class="region" data-region="tabs">
       <TabBar
@@ -127,6 +167,9 @@ onUnmounted(() => window.removeEventListener("keydown", onGlobalKeydown));
         :doc="store.activeTab?.content ?? ''"
         :doc-id="store.activeId ?? ''"
         :column-mode="columnMode"
+        :line-numbers="lineNumbers"
+        :active-line="activeLine"
+        :bracket-matching="bracketMatching"
         @position="onPosition"
         @change="onChange"
       />
