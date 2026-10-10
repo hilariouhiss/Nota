@@ -14,6 +14,8 @@ const dockCollapsed = ref(true);
 const dockTab = ref("find-replace");
 const line = ref(1);
 const column = ref(1);
+/** 列选择模式（菜单 edit.columnMode 开关，FR-14）：编辑区只按 prop 决定矩形选区是否放行 */
+const columnMode = ref(false);
 
 // §3.4：启动无可恢复文件时直接创建「未命名 1」空标签，不做欢迎页
 onMounted(() => {
@@ -48,10 +50,17 @@ function onChange() {
 }
 
 // §7.3 的唯一命令分发点：MenuBar 与 ToolBar 的 run 事件同名，共用这一个处理函数。
-// 「编辑器内表」命中就转发给编辑区；file.open/save/saveAs/recent、search.*、view.*、encoding.*、
-// settings.*、help.*、app.exit、edit.cut/copy/paste 在 M1 静默不处理——它们分别归 M2（文件 I/O）、
-// M4（查找）、M5（设置/帮助/视图开关），这里既不写空实现也不弹提示。
+// 「编辑器内表」命中就转发给编辑区（含 FR-12 的剪切/复制/粘贴，走 CodeMirror 的剪贴板路径）；
+// edit.columnMode 是模式开关，状态由这里持有，编辑区只按 prop 决定矩形选区是否放行。
+// file.open/save/saveAs/recent、search.*、view.*、encoding.*、settings.*、help.*、app.exit
+// 在 M1 静默不处理——它们分别归 M2（文件 I/O）、M4（查找）、M5（设置/帮助/视图开关），
+// 这里既不写空实现也不弹提示。
 function onCommand(command: string) {
+  if (command === "edit.columnMode") {
+    columnMode.value = !columnMode.value;
+    return;
+  }
+
   if (isEditorCommand(command)) {
     editorRef.value?.run(command);
     return;
@@ -81,6 +90,8 @@ function onCommand(command: string) {
 // 接上去只会吞掉浏览器默认行为却不做事。Alt 与菜单内的方向键归 MenuBar 的监听，两张表的键位不重叠，
 // 所以这里是独立的一个 handler，不与 MenuBar 合并。
 function onGlobalKeydown(e: KeyboardEvent) {
+  // 按住不放会连续触发 keydown：Ctrl+N 会一口气开出一串标签，Ctrl+W 会连关好几个
+  if (e.repeat) return;
   if (!e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
   const key = e.key.toLowerCase();
   const command = key === "n" ? "file.new" : key === "w" ? "tab.close" : null;
@@ -115,6 +126,7 @@ onUnmounted(() => window.removeEventListener("keydown", onGlobalKeydown));
         ref="editorRef"
         :doc="store.activeTab?.content ?? ''"
         :doc-id="store.activeId ?? ''"
+        :column-mode="columnMode"
         @position="onPosition"
         @change="onChange"
       />

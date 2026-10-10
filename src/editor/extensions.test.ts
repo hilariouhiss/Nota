@@ -1,4 +1,4 @@
-import { EditorState } from "@codemirror/state";
+import { EditorSelection, EditorState } from "@codemirror/state";
 import { describe, expect, it } from "vite-plus/test";
 import { createBaseExtensions, positionOf } from "./extensions";
 
@@ -44,6 +44,16 @@ describe("基础编辑器扩展", () => {
       rectangularSelection: false,
     });
     expect(exts.length).toBe(without.length + 2);
+  });
+
+  it("开启多选区：矩形选区的多区间不会被折叠成单区间（FR-14 列编辑生效的前提）", () => {
+    // allowMultipleSelections 关闭时（默认）EditorState 会把多区间强制折叠成一段，
+    // Alt+拖拽出来的矩形选区就只剩一段，多行同时输入静默失效
+    const state = stateWith("aa\nbb");
+    const multi = state.update({
+      selection: EditorSelection.create([EditorSelection.cursor(0), EditorSelection.cursor(3)]),
+    }).state;
+    expect(multi.selection.ranges.length).toBe(2);
   });
 });
 

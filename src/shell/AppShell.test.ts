@@ -5,6 +5,8 @@ import { mount, type VueWrapper } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { describe, expect, it } from "vite-plus/test";
 import { nextTick } from "vue";
+import EditorHost from "../editor/EditorHost.vue";
+import { V1_0_TOP_LEVEL } from "../menu/model";
 import { useDocumentsStore } from "../stores/documents";
 import AppShell from "./AppShell.vue";
 import MenuBar from "./MenuBar.vue";
@@ -29,6 +31,24 @@ function editorView(wrapper: VueWrapper) {
   const view = EditorView.findFromDOM(wrapper.find(".cm-editor").element as HTMLElement);
   if (!view) throw new Error("编辑区没有挂载 CodeMirror 视图");
   return view;
+}
+
+/**
+ * jsdom 没实现 `document.execCommand`，编辑器的剪切/复制正是走它触发 CodeMirror 的剪贴板路径。
+ * 装一个只记参数的探针（够用，不引 mock 框架）：不装的话「命令没接线」与「接了线但环境不支持」
+ * 在测试里完全同形，删掉实现也能通过。`enabled` 为 false 时保持 jsdom 原样（方法不存在）。
+ */
+function stubExecCommand(enabled: boolean) {
+  const calls: string[] = [];
+  if (!enabled) return { calls, restore: () => {} };
+  (document as unknown as { execCommand: unknown }).execCommand = (commandId: string) => {
+    calls.push(commandId);
+    return true;
+  };
+  return {
+    calls,
+    restore: () => delete (document as unknown as { execCommand?: unknown }).execCommand,
+  };
 }
 
 describe("AppShell", () => {
@@ -124,28 +144,68 @@ describe("AppShell", () => {
     expect(undoDepth(view.state)).toBe(0);
   });
 
-  it("菜单的 edit.* 命令转发到编辑区并真正生效（M1 出口：§7.3 分发路径）", async () => {
-    const { wrapper } = await mountShell();
-    editorView(wrapper).dispatch({ changes: { from: 0, insert: "abc" } });
-    await nextTick();
-
-    wrapper.findComponent(MenuBar).vm.$emit("run", "edit.undo");
-    await nextTick();
-
-    // 光有 emit 不算数：必须真的撤销掉刚才那次输入
-    expect(editorView(wrapper).state.doc.toString()).toBe("");
-  });
-
   // M1 出口清单：「菜单的全部 edit.* 项在编辑区实际生效」。逐项跑一遍，防止某个 command 接到了
-  // 别的命令上（例如复制行接成 copyLineUp）——这种错位光读代码几乎看不出来
-  const editCases: Array<{ command: string; text: string; cursor?: number; expected: string }> = [
+  // 别的命令上（例如复制行接成 copyLineUp）——这种错位光读代码几乎看不出来。
+  //
+  // 剪贴板三条（cut/copy/paste）在 jsdom 里验不了真：`document.execCommand` 与 `navigator.clipboard`
+  // 都不存在。这里只能装桩观察「命令确实走了 CodeMirror 的剪贴板路径」——桩不模拟浏览器的 copy/cut
+  // 事件，所以文档不变；真的进出系统剪贴板（复制选区文本、剪切删掉选区、粘贴系统剪贴板文本）
+  // 由控制器在真实浏览器验收。
+  const editCases: Array<{
+    command: string;
+    text: string;
+    cursor?: number;
+    /** 先执行的命令（redo 得先有 undo） */
+    before?: string[];
+    /** 命令执行后的文档文本 */
+    expected: string;
+    /** 装 document.execCommand 探针，并断言收到的参数（cut/copy） */
+    execCommand?: string;
+    /** 装 navigator.clipboard.readText 桩，返回这段文本（paste） */
+    clipboard?: string;
+    /** 文档看不出差异的命令（selectAll 只改选区、columnMode 只翻模式）另加断言 */
+    check?: (ctx: { wrapper: VueWrapper; view: EditorView }) => void;
+  }> = [
     { command: "edit.undo", text: "abc", expected: "" },
+    { command: "edit.redo", text: "abc", before: ["edit.undo"], expected: "abc" },
+    { command: "edit.cut", text: "abc", execCommand: "cut", expected: "abc" },
+    { command: "edit.copy", text: "abc", execCommand: "copy", expected: "abc" },
+    {
+      command: "edit.paste",
+      text: "abc",
+      cursor: 3, // 程序化插入后光标停在插入点之前，这里显式放到行尾，粘贴结果才可预期
+      clipboard: "ZZ",
+      expected: "abcZZ",
+      check: ({ view }) => expect(view.state.selection.main.head).toBe(5), // 光标跟到插入文本之后
+    },
     { command: "edit.deleteLine", text: "a\nb", cursor: 0, expected: "b" },
     { command: "edit.copyLine", text: "a", cursor: 0, expected: "a\na" },
     { command: "edit.moveLineUp", text: "a\nb", cursor: 2, expected: "b\na" },
     { command: "edit.moveLineDown", text: "a\nb", cursor: 0, expected: "b\na" },
     { command: "edit.joinLines", text: "a\n  b", cursor: 0, expected: "a b" },
+    {
+      command: "edit.columnMode",
+      text: "abc",
+      expected: "abc",
+      check: ({ wrapper }) =>
+        expect(wrapper.findComponent(EditorHost).props("columnMode")).toBe(true),
+    },
+    {
+      command: "edit.selectAll",
+      text: "abc",
+      expected: "abc",
+      check: ({ view }) =>
+        expect([view.state.selection.main.from, view.state.selection.main.to]).toEqual([0, 3]),
+    },
   ];
+
+  it("edit.* 用例覆盖 model 里的全部命令（漏一个就失败，防止覆盖面缩水）", () => {
+    const inMenu = V1_0_TOP_LEVEL.flatMap((m) => m.items)
+      .map((i) => i.command)
+      .filter((c): c is string => !!c?.startsWith("edit."));
+    expect(inMenu).toHaveLength(12);
+    expect(editCases.map((c) => c.command).sort()).toEqual([...inMenu].sort());
+  });
 
   for (const c of editCases) {
     it(`${c.command} 在编辑区生效（M1 出口：全部 edit.* 项）`, async () => {
@@ -155,37 +215,30 @@ describe("AppShell", () => {
       if (c.cursor !== undefined) view.dispatch({ selection: { anchor: c.cursor } });
       await nextTick();
 
-      wrapper.findComponent(MenuBar).vm.$emit("run", c.command);
-      await nextTick();
+      const exec = stubExecCommand(c.execCommand !== undefined);
+      if (c.clipboard !== undefined) {
+        Object.defineProperty(navigator, "clipboard", {
+          value: { readText: () => Promise.resolve(c.clipboard) },
+          configurable: true,
+        });
+      }
+      try {
+        for (const command of c.before ?? []) {
+          wrapper.findComponent(MenuBar).vm.$emit("run", command);
+          await nextTick();
+        }
+        wrapper.findComponent(MenuBar).vm.$emit("run", c.command); // 不抛错即「命令被消费」
+        await nextTick();
+      } finally {
+        exec.restore();
+        delete (navigator as unknown as { clipboard?: unknown }).clipboard;
+      }
 
       expect(editorView(wrapper).state.doc.toString()).toBe(c.expected);
+      if (c.execCommand !== undefined) expect(exec.calls).toEqual([c.execCommand]);
+      c.check?.({ wrapper, view: editorView(wrapper) });
     });
   }
-
-  it("edit.selectAll 选中整篇（M1 出口：全部 edit.* 项）", async () => {
-    const { wrapper } = await mountShell();
-    editorView(wrapper).dispatch({ changes: { from: 0, insert: "abc" } });
-    await nextTick();
-
-    wrapper.findComponent(MenuBar).vm.$emit("run", "edit.selectAll");
-    await nextTick();
-
-    const { from, to } = editorView(wrapper).state.selection.main;
-    expect([from, to]).toEqual([0, 3]);
-  });
-
-  it("edit.redo 重做（M1 出口：全部 edit.* 项）", async () => {
-    const { wrapper } = await mountShell();
-    editorView(wrapper).dispatch({ changes: { from: 0, insert: "abc" } });
-    await nextTick();
-
-    wrapper.findComponent(MenuBar).vm.$emit("run", "edit.undo");
-    await nextTick();
-    wrapper.findComponent(MenuBar).vm.$emit("run", "edit.redo");
-    await nextTick();
-
-    expect(editorView(wrapper).state.doc.toString()).toBe("abc");
-  });
 
   it("工具栏按钮走同一条分发路径（file.new 新建标签）", async () => {
     const { wrapper, store } = await mountShell();
@@ -210,6 +263,20 @@ describe("AppShell", () => {
     expect(ctrlW.defaultPrevented).toBe(true);
     expect(store.tabs).toHaveLength(1);
     expect(store.activeTab?.title).toBe("未命名 1");
+  });
+
+  it("按住不放的重复按键不再触发（Ctrl+N 连开一串标签）", async () => {
+    const { store } = await mountShell();
+    const repeat = new KeyboardEvent("keydown", {
+      key: "n",
+      ctrlKey: true,
+      repeat: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(repeat);
+    await nextTick();
+    expect(store.tabs).toHaveLength(1);
+    expect(repeat.defaultPrevented).toBe(false);
   });
 
   it("没有 M1 实现的全局键不被吞掉（Ctrl+O 留给 M2）", async () => {

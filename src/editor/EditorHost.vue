@@ -1,18 +1,28 @@
 <script setup lang="ts">
 import { Compartment, EditorState, Transaction } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorView, crosshairCursor, rectangularSelection } from "@codemirror/view";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTokens } from "../design/apply";
 import { executeEditorCommand } from "./commands";
 import { createBaseExtensions, positionOf } from "./extensions";
 import { createEditorTheme } from "./theme";
 
-const props = withDefaults(defineProps<{ doc?: string; docId?: string; lineNumbers?: boolean }>(), {
-  doc: "",
-  /** R36：文档身份。内容可能恰好相同（两个空标签），只有它也参与 watch 才认得出「换了一篇」 */
-  docId: "",
-  lineNumbers: true,
-});
+const props = withDefaults(
+  defineProps<{
+    doc?: string;
+    docId?: string;
+    lineNumbers?: boolean;
+    /** 列选择模式（菜单 edit.columnMode）：开启后不按 Alt 也能拖出矩形选区（FR-14） */
+    columnMode?: boolean;
+  }>(),
+  {
+    doc: "",
+    /** R36：文档身份。内容可能恰好相同（两个空标签），只有它也参与 watch 才认得出「换了一篇」 */
+    docId: "",
+    lineNumbers: true,
+    columnMode: false,
+  },
+);
 
 const emit = defineEmits<{
   position: [{ line: number; column: number }];
@@ -35,7 +45,13 @@ onMounted(() => {
         ...createBaseExtensions({
           tabSize: tokens.value.typography.tabSize,
           lineNumbers: props.lineNumbers,
+          // 矩形选区改由这里单独装配：它要读 columnMode 这个 prop
+          rectangularSelection: false,
         }),
+        // FR-14 列编辑：默认按着 Alt 拖拽；菜单「列选择模式」打开后直接拖。
+        // eventFilter 在事件触发时读 props，而 props 是响应式的，所以不需要 Compartment 热替换
+        rectangularSelection({ eventFilter: (e) => props.columnMode === true || e.altKey }),
+        crosshairCursor(),
         themeCompartment.of(createEditorTheme(tokens.value)),
         EditorView.updateListener.of((update) => {
           if (update.selectionSet || update.docChanged) emit("position", positionOf(update.state));

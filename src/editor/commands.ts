@@ -7,35 +7,40 @@ import {
   selectAll,
   undo,
 } from "@codemirror/commands";
-import type { ChangeSpec } from "@codemirror/state";
 import type { Command, EditorView } from "@codemirror/view";
+import { joinLines } from "./join-lines";
 
 /**
- * 合并行（FR-13，Ctrl+J）。@codemirror/commands 没有现成的对应命令，只能自己写：
- * 换行连同后续行的缩进一起换成一个空格——Notepad++ 的 Ctrl+J 与 VS Code 的 Join Lines
- * 都是这个行为（npp-user-manual.org/docs/editing）。无选中时合并当前行与下一行，
- * 选中多行时把它们合并成一行。
+ * 剪切/复制（FR-12）：走 CodeMirror 自己的剪贴板路径。`document.execCommand("copy"/"cut")` 会触发
+ * CM 注册在编辑区上的 copy/cut 事件处理器，选区文本与多区间都由它正确处理（自己拼剪贴板文本会漏掉
+ * 行尾样式与多光标）。jsdom 里没有 execCommand，返回 false 表示环境不支持——不抛错、也不改文档。
  */
-const joinLines: Command = (view) => {
-  const { state } = view;
-  const changes: ChangeSpec[] = [];
-  for (const range of state.selection.ranges) {
-    const first = state.doc.lineAt(range.from);
-    let lastNo = state.doc.lineAt(range.to).number;
-    // 选中范围的终点正好落在某行行首时，那一行其实没被选中，别把它的内容也合进来
-    if (lastNo > first.number && state.doc.line(lastNo).from === range.to) lastNo--;
-    if (lastNo === first.number) lastNo++; // 光标或单行选中：连同下一行一起合并
-    if (lastNo > state.doc.lines) continue; // 末行后面没有行可合并
+function clipboard(kind: "copy" | "cut"): Command {
+  return (view) => {
+    view.focus();
+    if (typeof document.execCommand !== "function") return false;
+    // 返回值不可靠（部分浏览器恒为 false）：命令已被消费，只要没抛错就算处理了
+    document.execCommand(kind);
+    return true;
+  };
+}
 
-    const last = state.doc.line(lastNo);
-    changes.push({
-      from: first.from,
-      to: last.to,
-      insert: state.sliceDoc(first.from, last.to).replace(/\n\s*/g, " ").trimEnd(),
+/**
+ * 粘贴（FR-12）：异步读系统剪贴板，插入到当前选区并移动光标。
+ * jsdom 里没有 `navigator.clipboard`，返回 false 安全降级（不得抛错）。
+ */
+const paste: Command = (view) => {
+  if (typeof navigator.clipboard?.readText !== "function") return false;
+  view.focus();
+  navigator.clipboard
+    .readText()
+    .then((text) => {
+      // 读到之后才用当时的选区：用户可能已经挪了光标
+      if (text) view.dispatch(view.state.replaceSelection(text));
+    })
+    .catch(() => {
+      // 剪贴板权限被拒（NotAllowedError）时静默：读不到剪贴板不该炸掉界面
     });
-  }
-  if (!changes.length) return false;
-  view.dispatch({ changes });
   return true;
 };
 
@@ -47,22 +52,35 @@ const joinLines: Command = (view) => {
 const TABLE: Record<string, (view: EditorView) => boolean> = {
   "edit.undo": undo,
   "edit.redo": redo,
-  "edit.selectAll": selectAll,
+  "edit.cut": clipboard("cut"),
+  "edit.copy": clipboard("copy"),
+  "edit.paste": paste,
   "edit.deleteLine": deleteLine,
   "edit.copyLine": copyLineDown,
   "edit.moveLineUp": moveLineUp,
   "edit.moveLineDown": moveLineDown,
   "edit.joinLines": joinLines,
+  "edit.selectAll": selectAll,
 };
+
+/**
+ * 命令表查询。不能用 `command in TABLE`，也不能只判断 `typeof TABLE[command] === "function"`：
+ * 原型链上的键（"toString"、"constructor"）两种写法都会放行——isEditorCommand 于是返回 true
+ * 把菜单命令吞掉，executeEditorCommand 却拿到 Object.prototype 上的函数、调用结果毫无意义。
+ * 只有 `Object.hasOwn` 才是「这张表里真有这条命令」。
+ */
+function lookup(command: string): ((view: EditorView) => boolean) | undefined {
+  return Object.hasOwn(TABLE, command) ? TABLE[command] : undefined;
+}
 
 /** 返回是否已处理。未收录的命令返回 false，由调用方决定后续行为 */
 export function executeEditorCommand(view: EditorView | null, command: string): boolean {
-  const fn = TABLE[command];
+  const fn = lookup(command);
   if (!fn || !view) return false;
   view.focus();
   return fn(view);
 }
 
 export function isEditorCommand(command: string): boolean {
-  return command in TABLE;
+  return !!lookup(command);
 }

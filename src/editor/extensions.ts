@@ -1,4 +1,10 @@
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import {
+  copyLineDown,
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from "@codemirror/commands";
 import { searchKeymap } from "@codemirror/search";
 import { EditorState, type Extension } from "@codemirror/state";
 import {
@@ -11,6 +17,7 @@ import {
   rectangularSelection,
 } from "@codemirror/view";
 import { bracketMatching } from "@codemirror/language";
+import { joinLines } from "./join-lines";
 
 export interface BaseExtensionOptions {
   tabSize: number;
@@ -28,7 +35,19 @@ export interface BaseExtensionOptions {
 export function createBaseExtensions(opts: BaseExtensionOptions): Extension[] {
   const exts: Extension[] = [
     history(),
-    keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
+    // 不开这个 facet，EditorState 会把多区间折叠成一段：Alt+拖拽出来的矩形选区就只剩一段，
+    // FR-14 的「列编辑多行同时输入」静默失效
+    EditorState.allowMultipleSelections.of(true),
+    keymap.of([
+      ...defaultKeymap,
+      ...historyKeymap,
+      ...searchKeymap,
+      indentWithTab,
+      // §7.3 编辑器内表里，defaultKeymap/historyKeymap 没有的两条（Mod = Windows 的 Ctrl）：
+      // 复制行、合并行。放数组末尾：前面的标准键位优先，冲突时仍按 CodeMirror 的默认行为走
+      { key: "Mod-Shift-d", run: copyLineDown },
+      { key: "Mod-j", run: joinLines },
+    ]),
     EditorState.tabSize.of(opts.tabSize),
     EditorView.lineWrapping,
   ];
