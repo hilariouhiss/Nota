@@ -61,4 +61,10 @@ onBeforeUnmount(() => {
   height: 100%;
   overflow: hidden;
 }
+
+/* CodeMirror 基座主题不给 .cm-editor 高度，宿主必须把它撑满，
+   否则长文档被 overflow:hidden 裁掉且不可滚动 */
+.editor-host :deep(.cm-editor) {
+  height: 100%;
+}
 </style>

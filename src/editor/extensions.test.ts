@@ -19,6 +19,14 @@ describe("基础编辑器扩展", () => {
     expect(tr.state.toJSON()).toBeTruthy();
   });
 
+  it("装配的扩展真的生效：tabSize facet 反映传入值", () => {
+    // 故意用 8：EditorState.tabSize 的默认值就是 4，用 4 无法区分「装配了」与「没装配」
+    const state = EditorState.create({
+      extensions: createBaseExtensions({ tabSize: 8, lineNumbers: true }),
+    });
+    expect(state.facet(EditorState.tabSize)).toBe(8);
+  });
+
   it("关闭行号时不引入行号扩展仍可正常工作", () => {
     const state = EditorState.create({
       doc: "x",
