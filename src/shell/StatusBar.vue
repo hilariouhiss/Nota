@@ -47,7 +47,9 @@ const emit = defineEmits<{ pickEncoding: []; pickEol: [] }>();
   display: flex;
   align-items: center;
   gap: calc(var(--sp-pad) * 1.1);
-  height: var(--sp-status-h);
+  /* 填满区域内容盒即可（R22）：外层 .status 区域已按令牌给出 22px 并自带 1px 边框，
+     此处再声明令牌高度会让子盒溢出内容盒 1px，并盖住相邻区域的 border-bottom 分隔线 */
+  height: 100%;
   padding: 0 var(--sp-pad);
   color: var(--sp-text-dim);
   font-size: var(--sp-font-size-status);
