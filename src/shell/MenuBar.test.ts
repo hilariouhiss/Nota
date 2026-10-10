@@ -6,6 +6,8 @@ import MenuBar from "./MenuBar.vue";
 
 // MenuBar 的 keydown 挂在 window 上：不卸载的话，上一个用例的实例会继续响应按键并抢焦点
 enableAutoUnmount(afterEach);
+// 编辑区替身挂在 body 上、不归 Vue 卸载管：跟着一起清掉，免得焦点漏到下一个用例
+afterEach(() => document.body.replaceChildren());
 
 /** jsdom 下 .focus() 与 document.activeElement 只在元素属于文档时才生效（§7.2 全键盘可达） */
 function mountBar() {
@@ -23,6 +25,22 @@ function pressRaw(key: string, init: KeyboardEventInit = {}) {
   const e = new KeyboardEvent("keydown", { key, cancelable: true, ...init });
   window.dispatchEvent(e);
   return e;
+}
+
+/** 编辑区替身：真实编辑区是 CodeMirror 的 contenteditable，jsdom 里用可聚焦 div 顶替，好断言「焦点没被抢走」 */
+function focusEditor() {
+  const el = document.createElement("div");
+  el.tabIndex = 0;
+  document.body.append(el);
+  el.focus();
+  return el;
+}
+
+/** 鼠标点开菜单（焦点留在编辑区）——真实浏览器里 Alt+F 之外的常见开法 */
+async function openByClick() {
+  const wrapper = mountBar();
+  await wrapper.findAll(".top")[0].trigger("click");
+  return wrapper;
 }
 
 describe("MenuBar", () => {
@@ -221,5 +239,46 @@ describe("MenuBar", () => {
 
     await wrapper.find(".sep").trigger("click");
     expect(wrapper.find(".dropdown").exists()).toBe(true);
+  });
+
+  it("Alt+助记符 打开菜单时焦点同时进菜单栏，不留半开态（R40）", async () => {
+    const wrapper = mountBar();
+    await press("s", { altKey: true }); // 搜索
+    expect(wrapper.findAll(".top")[2].attributes("aria-expanded")).toBe("true");
+    expect(document.activeElement).toBe(wrapper.findAll(".top")[2].element);
+  });
+
+  it("菜单打开但焦点在编辑区时 Shift+↓ 不接管：不吞键、不抢焦点（§7.3 下拉属编辑器内表）", async () => {
+    const wrapper = await openByClick();
+    const editor = focusEditor();
+
+    expect(pressRaw("ArrowDown", { shiftKey: true }).defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(editor);
+    expect(wrapper.findAll(".item").some((n) => n.element === document.activeElement)).toBe(false);
+  });
+
+  it("菜单打开但焦点在编辑区时 Ctrl+→ 不接管：不吞键、不抢焦点（§7.3 Ctrl+←/→ 归编辑器）", async () => {
+    const wrapper = await openByClick();
+    const editor = focusEditor();
+
+    expect(pressRaw("ArrowRight", { ctrlKey: true }).defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(editor);
+    expect(wrapper.findAll(".top").map((n) => n.attributes("tabindex"))).toEqual([
+      "0",
+      "-1",
+      "-1",
+      "-1",
+      "-1",
+      "-1",
+      "-1",
+    ]);
+  });
+
+  it("无修饰键的 ↓ 在菜单打开时仍进下拉并吞键（R40 回归）", async () => {
+    const wrapper = await openByClick();
+
+    expect(pressRaw("ArrowDown").defaultPrevented).toBe(true);
+    await nextTick();
+    expect(document.activeElement).toBe(wrapper.findAll(".item")[0].element);
   });
 });

@@ -61,10 +61,15 @@ function onKeydown(e: KeyboardEvent) {
         e.preventDefault();
         openIndex.value = i;
         focusIndex.value = i;
+        // 只开下拉不挪焦点＝半开态：接下来 Enter/↓ 落回编辑区，Alt+F 后按 Enter 不会执行「新建」（§7.2）
+        topEls()[focusIndex.value]?.focus();
       }
       return;
     }
   }
+
+  // 组合键留给编辑器（§7.3：两张表键位不重叠）——Shift/Ctrl/Meta+方向键不归菜单
+  if (e.ctrlKey || e.shiftKey || e.metaKey) return;
 
   const open = openIndex.value;
   // ←/→ 只在菜单栏有焦点或有菜单开着时接管，否则会吞掉编辑区的方向键
