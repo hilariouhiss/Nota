@@ -5,6 +5,7 @@
 | 版本 | 日期       | 修订内容                                                           |
 | ---- | ---------- | ------------------------------------------------------------------ |
 | V1.0 | 2026-10-10 | 初稿。V1.0 全量界面设计 + 扩展位预留；含对比度实测与待回写清单     |
+| V1.1 | 2026-10-10 | 新增 §6.5 图标（选定 `@vicons/fluent`，含 20 项图标名清单）；P1 补 `n-icon` 例外；新增 1 项待验证、1 项待回写 |
 
 ---
 
@@ -42,6 +43,7 @@
 | 设计令牌 | 颜色／密度／字体三组，浅深两套取值，含对比度实测 |
 | 组件清单 | 15 个 V1.0 前端组件的职责与里程碑归属 |
 | 三栏内容 | 菜单栏（7 个顶层菜单逐项）、工具栏（8 个按钮）、状态栏（含溢出优先级） |
+| 图标 | 图标库选型、接入方式、20 项图标名清单（§6.5） |
 | 交互规则 | 标签状态、焦点与键盘导航、快捷键归属、主题与字体应用、提示与错误、高 DPI |
 | 扩展位 | 语言菜单（V1.1）、代码折叠菜单项（V1.1）、在文件中查找页签（V1.2）、宏与插件菜单（V2.0） |
 
@@ -80,7 +82,7 @@
 
 | 编号 | 原则 | 依据 |
 | ---- | ---- | ---- |
-| **P1** | 骨架自持，组件库只出现在对话框与反馈层 | 菜单栏、标签栏、状态栏在候选组件库中均无对应物，强行套用需覆盖其尺寸体系；Naive UI 的价值集中在表单与反馈（AD-11 的适用范围据此收窄，见 §9.2） |
+| **P1** | 骨架自持，组件库只出现在对话框与反馈层（唯一例外是 `n-icon`，见 §6.5） | 菜单栏、标签栏、状态栏在候选组件库中均无对应物，强行套用需覆盖其尺寸体系；Naive UI 的价值集中在表单与反馈（AD-11 的适用范围据此收窄，见 §9.2）。`n-icon` 例外不违背本原则：它只是 1em 见方、`fill: currentColor` 的 `<i>` 容器，不携带尺寸体系 |
 | **P2** | 一个令牌源，三处消费 | 主题（FR-37）与字体（FR-38）必须运行时切换；若界面配色与编辑器配色各有一源，"界面深色但编辑器浅色"这类漂移无法从结构上避免 |
 | **P3** | 信息密度优先，但可访问性不可让 | G-01 轻量快速与五类用户中的开发／运维／数据分析三类都要求高密度；同时 DC-04、UI-07 要求 Unicode 与高 DPI 可用，对比度不得因压缩尺寸而失守 |
 | **P4** | 状态可见优先于界面简洁 | 未保存标记不需要悬停即可见；不可用按钮置灰而非隐藏；面板折叠后仍保留页签条 |
@@ -209,7 +211,7 @@ ThemeTokens 类型 + 内置浅/深两套值（tokens.ts）
 | `--sp-control-h` | 18px | 面板内输入框／按钮高度 |
 | `--sp-radius` | 3px | 圆角 |
 | `--sp-pad` | 8px | 区域横向内边距 |
-| `--sp-icon` | 15px | 图标尺寸（SVG） |
+| `--sp-icon` | 15px | 图标尺寸（经 `n-icon` 的 `1em` 生效，见 §6.5.2） |
 
 ## 4.4 字体令牌
 
@@ -273,6 +275,8 @@ G-04 要求支持主题扩展。本节的令牌结构即为扩展点：主题文
 | `EditorThemeBridge` | 令牌 → CodeMirror 主题与高亮样式（不产生 DOM） | M1 |
 
 `SettingsDialog`、`AboutDialog`、`ShortcutsDialog`、`ConfirmDialog`、`NotificationHost` **是 Naive UI 唯一出现的地方**（P1）。其余组件自定义，只读令牌。
+
+**图标不产生组件**：全部经 `n-icon` + `@vicons/fluent` 渲染，尺寸与颜色由令牌继承，不新增封装（见 §6.5）。
 
 CodeMirror 侧的 `bracketMatching()`、`highlightActiveLine()`、`rectangularSelection()`、`crosshairCursor()` 是扩展而非 Vue 组件，分别对应 FR-18、FR-19、FR-14。
 
@@ -394,7 +398,75 @@ CodeMirror 侧的 `bracketMatching()`、`highlightActiveLine()`、`rectangularSe
 
 两处均遵循 §7.2 的焦点规则：`Esc` 关闭并把焦点还给编辑区。
 
-## 6.5 扩展位
+## 6.5 图标
+
+### 6.5.1 图标库
+
+**Naive UI 官方推荐的图标库是 [xicons](https://www.xicons.org)，其在 Vue 3 下的包族为 `@vicons/*`。** 该推荐出自 Naive UI 官方 README 原文（"Naive UI recommends using xicons as icon library"），且 `@vicons/*` 的 README 声明自身为 "A part of xicons project"，作者 `07akioni` 与 naive-ui 为同一人。各包均 MIT 协议，当前版本 0.13.0（2024-12-20 发布，不受 pnpm 的 24 小时 `minimumReleaseAge` 门禁影响）。
+
+本项目选用 **`@vicons/fluent` 0.13.0**（Fluent UI System Icons）：
+
+| # | 依据 |
+| - | ---- |
+| 1 | **15px 下清晰**。紧凑密度把图标压到 15px，本规范拟用的图标全部为填充型（实测 8/8），缩放不产生亚像素描边 |
+| 2 | **Regular / Filled 成对**，包内共 20144 个图标，覆盖最广。选中态、勾选菜单项、开关开启都需要成对图标 |
+| 3 | Windows 优先（DC-05），与微软自家图标体系一致 |
+
+未选用的三个候选，原因是**实测值而非印象**：
+
+| 图标集 | 实测结果 | 未选原因 |
+| ------ | -------- | -------- |
+| `@vicons/ionicons5` | 拟用图标全部为描边型（8/8）；viewBox 512、`stroke-width: 32` → **15px 下有效描边 0.94px** | 描边落到 1px 以下即成亚像素，100% DPI 下渲染发虚、浓淡不匀；且包内**无"文件+加号"**，「新建」只能退化成普通文档图标 |
+| `@vicons/tabler` | viewBox 24、`stroke-width: 2` → 15px 下有效描边 1.25px | 偏细；且无 Regular / Filled 成对 |
+| `@vicons/antd` | 填充型，15px 下清晰 | 包内图标最少（1582 个），视觉风格偏中后台，与桌面工具定位不符 |
+
+> **`@vicons/ionicons5` 正是 Naive UI 自身文档与示例默认使用的图标集。** 本规范与它结论不同是有实测依据的（上表第一行），不是疏漏；"官方示例用什么就用什么"在这个尺寸下恰好是错的选择。
+
+### 6.5.2 接入方式
+
+| 项目 | 规则 |
+| ---- | ---- |
+| 依赖 | `@vicons/fluent` 0.13.0，**运行时依赖**（非 devDependency） |
+| 包装 | 经 Naive UI 的 `n-icon` 渲染 |
+| 尺寸 | **由令牌驱动，不在调用点写死**。`n-icon` 的样式为 `height / width / line-height: 1em` 且 `fill: currentColor`（其 `size` 属性也只是映射为 `font-size`），因此只需在容器上给出 `font-size: var(--sp-icon)` 与颜色，图标自动跟随 |
+| 颜色 | 始终以 `currentColor` 继承，**不传 `color` 属性**，使图标与所在区域的文字令牌保持一致；激活态由容器改用 `--sp-accent` |
+| 封装组件 | **不新增**。`n-icon` 已完成尺寸与颜色的归一，再包一层是没有消费者的抽象 |
+| 变体用法 | 默认 **Regular**；**Filled** 仅用于选中／激活态（面板当前页签、勾选中的菜单项、开关开启） |
+
+`n-icon` 是 P1 的唯一例外（见 §2），理由见该表。
+
+### 6.5.3 图标清单
+
+图标名必须钉死到具体项，否则实现时同一个"保存"会出现 `Save20Regular` 与 `Save24Regular` 混用。以下覆盖 V1.0 全部图标需求，**每个名字都已在包内核实存在**。
+
+| 位置 | 用途 | 图标名 |
+| ---- | ---- | ------ |
+| 工具栏 | 新建 | `DocumentAdd20Regular` ／ `DocumentAdd20Filled` |
+| 工具栏 | 打开 | `FolderOpen20Regular` ／ `FolderOpen20Filled` |
+| 工具栏 | 保存 | `Save20Regular` ／ `Save20Filled` |
+| 工具栏 | 撤销 | `ArrowUndo20Regular` ／ `ArrowUndo20Filled` |
+| 工具栏 | 重做 | `ArrowRedo20Regular` ／ `ArrowRedo20Filled` |
+| 工具栏·搜索菜单 | 查找 | `Search20Regular` ／ `Search20Filled` |
+| 工具栏·搜索菜单 | 替换 | `ArrowSwap20Regular` ／ `ArrowSwap20Filled` |
+| 工具栏·设置菜单 | 设置 | `Settings20Regular` ／ `Settings20Filled` |
+| 标签栏 | 关闭 | `Dismiss20Regular` ／ `Dismiss20Filled` |
+| 标签栏·溢出 | 向左／向右滚动 | `ChevronLeft20Regular`、`ChevronRight20Regular` |
+| 面板页签条 | 折叠／展开 | `ChevronUp20Regular`、`ChevronDown20Regular` |
+| 查找页签 | 上一个／下一个匹配 | `ArrowUp20Regular`、`ArrowDown20Regular` |
+| 在文件中查找页签 | 浏览目录 | `Folder20Regular` |
+| 在文件中查找页签 | 更多操作 | `MoreHorizontal20Regular` |
+| 帮助菜单 | 快捷键说明 | `Keyboard20Regular` |
+| 帮助菜单 | 关于 | `Info20Regular` ／ `Info20Filled` |
+| 通知宿主 | 成功 | `CheckmarkCircle20Regular` ／ `CheckmarkCircle20Filled` |
+| 通知宿主 | 警告 | `Warning20Regular` ／ `Warning20Filled` |
+| 通知宿主 | 错误 | `ErrorCircle20Regular` ／ `ErrorCircle20Filled` |
+| 状态栏·通知宿主 | 崩溃恢复／大文件提示 | `History20Regular` ／ `Gauge20Regular` |
+
+标签上的**未保存指示 `●` 不是图标**，是 `--sp-accent` 的 7px 圆点（§7.1），用 CSS 绘制即可。
+
+**新增图标时的规则**：先在包内确认名字存在，再补入本表。`@vicons/fluent` 的图标名带尺寸后缀（`20` / `24` / `16` 等，同名图标有多个尺寸变体），凭印象拼写必然出错。
+
+## 6.6 扩展位
 
 | 版本 | 菜单／界面变动 |
 | ---- | -------------- |
@@ -487,7 +559,7 @@ Tauri 窗口在 WebView 画出第一帧之前就已可见，深色主题用户�
 
 | 里程碑 | 本文档中对应的设计内容 |
 | ------ | ---------------------- |
-| M1 | §3.1 布局、§3.4 边界状态、§4 全部令牌、§5.1 中 M1 组件、§6.1～6.3 三栏、§7.1～7.3、§8.1、§8.2 |
+| M1 | §3.1 布局、§3.4 边界状态、§4 全部令牌、§5.1 中 M1 组件、§6.1～6.3 三栏、§6.5 图标（工具栏部分）、§7.1～7.3、§8.1、§8.2 |
 | M2 | §6.3 状态栏编码与换行符字段、§7.5 编码检测失败与崩溃恢复 |
 | M3 | §7.1 标签（未保存、中键）、§7.5 未保存确认、§5.1 的 `ConfirmDialog` |
 | M4 | §3.2 面板（查找／替换页签）、§5.1 的 `FindReplacePage` |
@@ -508,6 +580,7 @@ Tauri 窗口在 WebView 画出第一帧之前就已可见，深色主题用户�
 | 2 | Naive UI 默认尺寸体系与本文档紧凑密度的冲突程度 | 影响 §5.1 中五个对话框的实现成本 | 因骨架已自定义（P1），冲突面已缩小到对话框内部；M5 实现设置对话框时评估 |
 | 3 | `tauri.conf.json` 的 `backgroundColor` 是否确实在 WebView 首次绘制前生效 | 决定 §8.1 能否真正消除启动闪白 | M1 实机验证（属性存在性已核实，生效时机未核实） |
 | 4 | CodeMirror 在高 DPI 三档下的光标宽度与行高取整 | PR-10、UI-07 | M1 与 §7.6 一并人工验证 |
+| 5 | `@vicons/fluent` 的入口是含 20144 个导出的 barrel 文件，Vite 预打包与 HMR 可能因此变慢 | 影响 M1 的开发体验，不影响产物体积（未引用的图标会被 tree-shake 掉） | M1 引入依赖时实测启动与 HMR 耗时；若明显变慢，改从深路径引入单个图标绕开 barrel，例如 `@vicons/fluent/es/Save20Regular` |
 
 **复算方式**：按 WCAG 2.1 相对亮度公式 `(L1+0.05)/(L2+0.05)` 计算，`L` 由 sRGB 分量按 `c/255 ≤ 0.03928 ? c/12.92 : ((c/255+0.055)/1.055)^2.4` 求得，权重 `0.2126 / 0.7152 / 0.0722`。
 
@@ -527,6 +600,7 @@ Tauri 窗口在 WebView 画出第一帧之前就已可见，深色主题用户�
 | 6 | 实施计划 M1 关键任务组 | 第 1 项「引入依赖：…、Naive UI、Pinia、VueUse」未区分用途 | 明确：Naive UI 仅用于对话框与反馈层（本文档 §5.1）；若 M1 尚无对话框，可推迟到 M2／M3 引入 |
 | 7 | 实施计划 M1 关键任务组 | 第 6 项「窗口标题与尺寸（`tauri.conf.json` 现为 800×600）」 | 补入本文档 §8.1 的启动背景色与 §8.2 的默认尺寸、尺寸记忆 |
 | 8 | 实施计划 M5 | 未含 OR-01／OR-03 | 补入帮助菜单（快捷键说明对话框、关于对话框） |
+| 9 | 架构文档 §4.1 技术栈总览、附录 A.4 规划前端依赖 | 未列图标库 | 补入 `@vicons/fluent` 0.13.0（运行时依赖），来源为 Naive UI 官方推荐的 xicons 项目；选型依据与图标清单见本文档 §6.5 |
 
 ## 9.3 明确排除的候选功能（范围外）
 
@@ -581,5 +655,6 @@ Tauri 窗口在 WebView 画出第一帧之前就已可见，深色主题用户�
 3. 《ScribaPad 应用实施计划》，同目录 `ScribaPad 应用实施计划.md`
 4. WCAG 2.1，W3C Recommendation，对比度要求 1.4.3（正文 4.5:1）与 1.4.11（非文本对比 3:1）
 5. Tauri 2 窗口配置 schema，`node_modules/@tauri-apps/cli/config.schema.json`
-6. Naive UI 官方文档（主题系统与 `themeOverrides`）
-7. CodeMirror 6 官方文档（`EditorView.theme`、`Compartment`、`rectangularSelection`）
+6. Naive UI 官方文档（主题系统与 `themeOverrides`、`n-icon`）
+7. xicons 官方站点与 `@vicons/*` 包族（Naive UI 官方推荐的图标库；本项目选用 `@vicons/fluent`）
+8. CodeMirror 6 官方文档（`EditorView.theme`、`Compartment`、`rectangularSelection`）
