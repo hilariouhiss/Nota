@@ -62,8 +62,12 @@ export function tokensToEditorTheme(t: ThemeTokens): Record<string, Record<strin
       color: t.color.editorText,
       backgroundColor: t.color.bgSurface,
       fontSize: `${t.typography.editorFontSize}px`,
-      lineHeight: String(t.typography.editorLineHeight),
       fontFamily: t.typography.monoFont,
+    },
+    ".cm-scroller": {
+      // 基座主题在 .cm-scroller 上直接给了 line-height: 1.4，
+      // 写在 "&" 上只会被后代规则盖过，必须落在同一元素上
+      lineHeight: String(t.typography.editorLineHeight),
     },
     ".cm-content": { caretColor: t.color.editorCaret },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: t.color.editorCaret },

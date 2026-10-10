@@ -86,8 +86,9 @@ describe("tokensToEditorTheme", () => {
     expect(theme["&"].color).toBe(DARK_TOKENS.color.editorText);
     expect(theme["&"].backgroundColor).toBe(DARK_TOKENS.color.bgSurface);
     expect(theme[".cm-gutters"].color).toBe(DARK_TOKENS.color.editorGutter);
-    // 令牌是样式唯一源：编辑器行高也必须由令牌驱动，而不是 CodeMirror 基座的 1.4
-    expect(theme["&"].lineHeight).toBe("1.45");
+    // 令牌是样式唯一源：编辑器行高也必须由令牌驱动，而不是 CodeMirror 基座的 1.4。
+    // 必须落在 .cm-scroller（承载行高的元素）上，写在 "&" 上会被基座的后代规则盖过
+    expect(theme[".cm-scroller"].lineHeight).toBe("1.45");
   });
 });
 
