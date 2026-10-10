@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from "vue";
 import EditorHost from "../editor/EditorHost.vue";
 import { useDocumentsStore } from "../stores/documents";
+import MenuBar from "./MenuBar.vue";
 import StatusBar from "./StatusBar.vue";
 import TabBar from "./TabBar.vue";
 
@@ -45,7 +46,10 @@ function onChange() {
 
 <template>
   <div class="shell">
-    <div class="region" data-region="menu" />
+    <div class="region" data-region="menu">
+      <!-- 本任务不接命令：run 事件留给 Task 18 的命令分发 -->
+      <MenuBar />
+    </div>
     <div class="region" data-region="toolbar" />
     <div class="region" data-region="tabs">
       <TabBar
