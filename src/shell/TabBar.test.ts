@@ -14,7 +14,7 @@ describe("TabBar", () => {
     expect(wrapper.findAll(".tab")[0].classes()).toContain("active");
   });
 
-  it("未保存标签显示圆点而不是关闭按钮（设计规范 §7.1：● 不需要悬停即可见）", () => {
+  it("未保存标签常显圆点，关闭按钮悬停时才出现（设计规范 §7.1：● 不需要悬停即可见）", () => {
     const wrapper = mount(TabBar, { props: { tabs, activeId: "a" } });
     const dirty = wrapper.findAll(".tab")[1];
     expect(dirty.find(".dot").exists()).toBe(true);
@@ -31,6 +31,20 @@ describe("TabBar", () => {
     expect(wrapper.emitted("select")?.[0]).toEqual(["b"]);
     await wrapper.findAll(".tab")[0].find(".close").trigger("click");
     expect(wrapper.emitted("close")?.[0]).toEqual(["a"]);
+  });
+
+  it("未保存标签的关闭控件可键盘到达并可激活（§7.2）", async () => {
+    const wrapper = mount(TabBar, { props: { tabs, activeId: "a" } });
+    const close = wrapper.findAll(".tab")[1].find(".close");
+    expect(close.attributes("tabindex")).toBe("0");
+    await close.trigger("keydown.enter");
+    expect(wrapper.emitted("close")).toEqual([["b"]]);
+  });
+
+  it("点击关闭控件不触发 select", async () => {
+    const wrapper = mount(TabBar, { props: { tabs, activeId: "a" } });
+    await wrapper.findAll(".tab")[1].find(".close").trigger("click");
+    expect(wrapper.emitted("select")).toBeUndefined();
   });
 
   it("中键点击关闭标签（Windows 惯例）", async () => {

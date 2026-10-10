@@ -29,7 +29,18 @@ function onAuxClick(e: MouseEvent, id: string) {
       <span class="title">{{ tab.title }}</span>
       <!-- 未保存时用圆点：状态可见优先于界面简洁 -->
       <span v-if="tab.dirty" class="dot" aria-label="未保存" />
-      <span v-else class="close" aria-label="关闭" @click.stop="emit('close', tab.id)">×</span>
+      <!-- §7.1：未保存标签常显 ●、悬停/聚焦时变 ×；故两者同时渲染，由 CSS 切换显隐 -->
+      <span
+        class="close"
+        :class="{ 'close-on-hover': tab.dirty }"
+        role="button"
+        tabindex="0"
+        aria-label="关闭"
+        @click.stop="emit('close', tab.id)"
+        @keydown.enter.stop.prevent="emit('close', tab.id)"
+        @keydown.space.stop.prevent="emit('close', tab.id)"
+        >×</span
+      >
     </button>
   </div>
 </template>
@@ -75,14 +86,37 @@ function onAuxClick(e: MouseEvent, id: string) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.dot {
-  width: 7px;
-  height: 7px;
+/* ● 与 × 共用一个固定盒子：切换时不改变标签宽度（§7.1 不得位移/放大） */
+.dot,
+.close {
   flex: 0 0 auto;
+  width: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dot {
+  height: 7px;
   border-radius: 50%;
   background: var(--sp-accent);
 }
 .close {
   opacity: 0.8;
+}
+/* §7.1：未保存标签的关闭控件平时隐藏，悬停或键盘聚焦时出现 */
+.close-on-hover {
+  display: none;
+}
+.tab:hover .dot,
+.tab:focus-within .dot {
+  display: none;
+}
+.tab:hover .close-on-hover,
+.tab:focus-within .close-on-hover {
+  display: inline-flex;
+}
+.close:focus-visible {
+  outline: 2px solid var(--sp-focus-ring);
+  outline-offset: 1px;
 }
 </style>
