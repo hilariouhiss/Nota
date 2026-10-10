@@ -1,10 +1,28 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import EditorHost from "../editor/EditorHost.vue";
+import { useDocumentsStore } from "../stores/documents";
 import StatusBar from "./StatusBar.vue";
 import TabBar from "./TabBar.vue";
 
+const store = useDocumentsStore();
 const dockCollapsed = ref(true);
+const line = ref(1);
+const column = ref(1);
+
+// §3.4：启动无可恢复文件时直接创建「未命名 1」空标签，不做欢迎页
+onMounted(() => {
+  if (store.tabs.length === 0) store.newDocument();
+});
+
+function onPosition(position: { line: number; column: number }) {
+  line.value = position.line;
+  column.value = position.column;
+}
+
+function onChange() {
+  if (store.activeId) store.setDirty(store.activeId, true);
+}
 </script>
 
 <template>
@@ -12,18 +30,19 @@ const dockCollapsed = ref(true);
     <div class="region" data-region="menu" />
     <div class="region" data-region="toolbar" />
     <div class="region" data-region="tabs">
-      <!-- 占位数据：真实标签由 Task 11 的 documents store 接管 -->
       <TabBar
-        :tabs="[{ id: 'untitled-1', title: '未命名 1', dirty: false }]"
-        active-id="untitled-1"
+        :tabs="store.tabs"
+        :active-id="store.activeId ?? ''"
+        @select="store.selectDocument"
+        @close="store.closeDocument"
       />
     </div>
-    <div class="region" data-region="editor"><EditorHost /></div>
+    <div class="region" data-region="editor">
+      <EditorHost :doc="store.activeTab?.content ?? ''" @position="onPosition" @change="onChange" />
+    </div>
     <div class="region" data-region="dock" :data-collapsed="String(dockCollapsed)" />
     <div class="region" data-region="status">
-      <!-- 占位值：真实行列号由 Task 8（EditorHost 上报）/ Task 11（AppShell 接线）补上。
-           line/column 必须用绑定（数字字面量），静态属性是字符串，vue-tsc 会报 TS2322 -->
-      <StatusBar :line="1" :column="1" language="纯文本" encoding="UTF-8" eol="CRLF" />
+      <StatusBar :line="line" :column="column" language="纯文本" encoding="UTF-8" eol="CRLF" />
     </div>
   </div>
 </template>

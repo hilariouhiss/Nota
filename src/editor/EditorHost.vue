@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Compartment, EditorState } from "@codemirror/state";
+import { Compartment, EditorState, Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTokens } from "../design/apply";
@@ -11,7 +11,11 @@ const props = withDefaults(defineProps<{ doc?: string; lineNumbers?: boolean }>(
   lineNumbers: true,
 });
 
-const emit = defineEmits<{ position: [{ line: number; column: number }] }>();
+const emit = defineEmits<{
+  position: [{ line: number; column: number }];
+  /** 用户编辑了正文（程序化的文档替换不算，见 updateListener） */
+  change: [];
+}>();
 
 const host = ref<HTMLDivElement | null>(null);
 const { tokens } = useTokens();
@@ -32,6 +36,14 @@ onMounted(() => {
         themeCompartment.of(createEditorTheme(tokens.value)),
         EditorView.updateListener.of((update) => {
           if (update.selectionSet || update.docChanged) emit("position", positionOf(update.state));
+          // R34：只有用户编辑才算「未保存」。程序化的文档替换（切标签）带 addToHistory=false，
+          // 若不排除它，刚切到的标签会被立刻标成未保存——而用户什么都没改
+          if (
+            update.docChanged &&
+            !update.transactions.some((tr) => tr.annotation(Transaction.addToHistory) === false)
+          ) {
+            emit("change");
+          }
         }),
       ],
     }),
@@ -51,7 +63,11 @@ watch(
   () => props.doc,
   (next) => {
     if (!view || view.state.doc.toString() === next) return;
-    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: next } });
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: next },
+      // R35：替换不进撤销历史，否则切到 B 标签后 Ctrl+Z 会撤出 A 标签的内容
+      annotations: Transaction.addToHistory.of(false),
+    });
   },
 );
 
