@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from "vue";
 import EditorHost from "../editor/EditorHost.vue";
 import { useDocumentsStore } from "../stores/documents";
+import DockPanel from "./DockPanel.vue";
 import MenuBar from "./MenuBar.vue";
 import StatusBar from "./StatusBar.vue";
 import TabBar from "./TabBar.vue";
@@ -9,6 +10,7 @@ import ToolBar from "./ToolBar.vue";
 
 const store = useDocumentsStore();
 const dockCollapsed = ref(true);
+const dockTab = ref("find-replace");
 const line = ref(1);
 const column = ref(1);
 
@@ -72,7 +74,21 @@ function onChange() {
         @change="onChange"
       />
     </div>
-    <div class="region" data-region="dock" :data-collapsed="String(dockCollapsed)" />
+    <div class="region" data-region="dock" :data-collapsed="String(dockCollapsed)">
+      <!-- 页签条既是「面板当前在做什么」的状态显示，也是再次展开的入口（§3.2）：
+           × 只折叠，不销毁 —— dockCollapsed=false 的路径由页签点击提供，否则折叠态就永久锁死了 -->
+      <DockPanel
+        :collapsed="dockCollapsed"
+        :active-tab="dockTab"
+        @update:active-tab="
+          (id) => {
+            dockTab = id;
+            dockCollapsed = false;
+          }
+        "
+        @close="dockCollapsed = true"
+      />
+    </div>
     <div class="region" data-region="status">
       <StatusBar :line="line" :column="column" language="纯文本" encoding="UTF-8" eol="CRLF" />
     </div>
