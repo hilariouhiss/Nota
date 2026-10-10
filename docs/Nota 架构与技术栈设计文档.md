@@ -106,7 +106,7 @@ Nota 架构设计遵循以下目标：
 | Tauri 插件   | 仅 `tauri-plugin-opener`（Rust）与 `@tauri-apps/plugin-opener`（前端）        |
 | Rust 侧命令  | 仅脚手架自带的 `greet` 演示命令                                               |
 | 前端页面     | 仅脚手架默认页（`src/App.vue` 调用 `invoke("greet")`）                        |
-| 窗口与标识   | 1200×800（最小 640×400）；`identifier = com.nota`；dev 端口 1420；产物目录 `../dist`      |
+| 窗口与标识   | 1200×800（最小 640×400）；`identifier = io.github.hilariouhiss.nota`；dev 端口 1420；产物目录 `../dist`      |
 | 类型检查     | `vue-tsc -b`；tsconfig 为 solution 结构（app / node 两个子项目）              |
 | 版本控制     | git 已初始化并接入远端 `git@github.com:hilariouhiss/Nota.git`（30+ 提交，已推送） |
 

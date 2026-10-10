@@ -62,7 +62,11 @@ const DENSITY = {
 } as const;
 
 const UI_FONT = '"Segoe UI", "Microsoft YaHei", system-ui, sans-serif';
-// TODO(Task 3): 中日韩回退字体的字宽待实测确认。Task 3 会移除本行标记并写下结论
+// 中文字宽已实测（2026-10-10）：13px 下中日韩 13.000px、拉丁 7.147px（Consolas 0.55em），
+// 比值 1.8188、与 2 倍的差值 1.295px（判定阈值 < 0.1px）→ FAIL。
+// 根因：2:1 要求拉丁等宽的前进宽度恰为 0.5em，Consolas 结构上不可能满足。
+// 产品决定于 2026-10-10 接受该偏差：V1.0 列编辑在多行中文上纵向不对齐，中文显示不受影响。
+// 候选字体实测数据见 probe/cjk-width.ts 顶部注释；如日后更换本栈，必须重跑探针与 derive.test.ts 的对比度断言。
 const MONO_FONT = 'Consolas, "Cascadia Mono", "Microsoft YaHei", monospace';
 
 export const LIGHT_TOKENS: ThemeTokens = {
